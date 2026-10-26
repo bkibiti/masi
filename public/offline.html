@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0B0B0B">
+    <title>Offline · ABG Metal Works</title>
+    <style>
+        :root {
+            --abg-black: #0B0B0B;
+            --abg-gold: #C9A13F;
+            --abg-gold-hover: #B8892B;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+            background-color: var(--abg-black);
+            color: #FFFFFF;
+            font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            text-align: center;
+        }
+
+        .offline {
+            max-width: 360px;
+        }
+
+        .offline__logo {
+            width: 140px;
+            height: 140px;
+            margin-bottom: 28px;
+        }
+
+        .offline__title {
+            margin: 0 0 10px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .offline__text {
+            margin: 0 0 28px;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #D6D6D6;
+        }
+
+        .offline__button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 200px;
+            min-height: 52px;
+            padding: 0 28px;
+            border: 0;
+            border-radius: 10px;
+            background-color: var(--abg-gold);
+            color: var(--abg-black);
+            font: inherit;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .offline__button:hover {
+            background-color: var(--abg-gold-hover);
+        }
+
+        .offline__button:focus-visible {
+            outline: 3px solid #FFFFFF;
+            outline-offset: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="offline">
+        <img class="offline__logo" src="/images/abg-logo.png" alt="ABG Metal Works" width="140" height="140">
+        <h1 class="offline__title">You're offline</h1>
+        <p class="offline__text">Check your internet connection and try again.</p>
+        <button type="button" class="offline__button" onclick="window.location.reload()">Try again</button>
+    </main>
+
+    <script>
+        // Reload by itself as soon as the connection comes back
+        window.addEventListener('online', function () { window.location.reload(); });
+    </script>
+</body>
+
+</html>

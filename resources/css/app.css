@@ -1,0 +1,32 @@
+@import 'admin-lte/dist/css/adminlte.css';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+@import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
+@import 'select2/dist/css/select2.css';
+@import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css';
+
+/* Brand logo in the sidebar and on the login box */
+.sidebar-brand .brand-image {
+    max-height: 33px;
+    width: auto;
+}
+
+.login-logo img {
+    max-height: 72px;
+    width: auto;
+}
+
+/* Select2 fills its column like a .form-control */
+.select2-container {
+    width: 100% !important;
+}
+
+/* Flash notifications (bootstrap-growl) above modals and the fixed header */
+[data-growl='container'] {
+    z-index: 1090 !important;
+    min-width: 280px;
+}
+
+/* Notification dropdown items wrap instead of overflowing */
+.dropdown-menu .notification-item {
+    white-space: normal;
+}

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(php artisan make:model PaymentMethod --no-interaction)",
+      "Bash(git rm *)",
+      "Bash(vendor/bin/pint --dirty --format agent)",
+      "Bash(php -l app/Http/Controllers/SaleController.php)",
+      "PowerShell(php artisan tinker --execute '$u = App\\\\Models\\\\User::first\\(\\); Auth::login\\($u\\); app\\(\"view\"\\)->share\\(\"errors\", new Illuminate\\\\Support\\\\ViewErrorBag\\); $html = app\\(App\\\\Http\\\\Controllers\\\\SaleController::class\\)->index\\(\\)->render\\(\\); echo strlen\\($html\\), PHP_EOL; preg_match_all\\(\"/js-product\\\\\"/\", $html, $m\\); echo \"products: \", count\\($m[0]\\), PHP_EOL; echo \\(str_contains\\($html, \"payment_1\"\\) ? \"payment radios ok\" : \"no radios\"\\), PHP_EOL;')",
+      "PowerShell(php artisan view:clear)",
+      "Bash(grep -E '^DB_\\(HOST|PORT|DATABASE|USERNAME\\)' .env; ls /c/laragon/bin/mysql/ 2>/dev/null)",
+      "Read(//c/laragon/bin/mysql//**)",
+      "mcp__laravel-boost__browser-logs",
+      "Bash(ls \"/c/Program Files/Google/Chrome/Application/chrome.exe\" \"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" 2>&1; node -v; ls node_modules | grep -i \"puppeteer\\\\|playwright\"; grep -n \"\\\\\"\" package.json | head -30)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)"
+    ]
+  }
+}

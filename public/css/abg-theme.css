@@ -1,0 +1,1486 @@
+/* ABG brand theme — layered on top of AdminLTE 4 / Bootstrap 5. Layout only; charts/data use the data colours below. */
+
+:root {
+    --abg-black: #0B0B0B;
+    --abg-gold: #C9A13F;
+    --abg-gold-hover: #B8892B;
+    --abg-gold-dark-text: #8A6A1E;
+
+    --abg-bg: #F6F4EF;
+    --abg-card: #FFFFFF;
+    --abg-border: #E7E3D9;
+    --abg-input-border: #D8D4CB;
+
+    --abg-text: #141414;
+    --abg-muted: #5C5C5C;
+
+    --abg-sales: #2F6B8A;
+    --abg-expense: #E0874E;
+    --abg-expense-track: #F7E6DA;
+
+    --abg-service: #2A9D8F;
+    --abg-service-bg: #DDF1EE;
+    --abg-service-text: #1D6B62;
+
+    --abg-item: #5B6FB5;
+    --abg-item-bg: #E5E9F6;
+    --abg-item-text: #34458A;
+
+    --abg-negative: #B42318;
+    --abg-negative-on-dark: #F5B5B5;
+
+    /* Dashboard "Sales by service": fixed per-product colours, never by rank. Keep in sync with
+       DashboardService::SERVICE_COLORS in app/Services/DashboardService.php. */
+    --abg-svc-bending: #2A9D8F;
+    --abg-svc-plasma: #5B6FB5;
+    --abg-svc-pipe: #C9A13F;
+    --abg-svc-other: #6E6E6E;
+
+    /* Dashboard "Expenses by category" bars */
+    --abg-expense-copper: #C77A45;
+    --abg-expense-copper-light: #E3B48F;
+}
+
+/* ---- Base ---- */
+body,
+.app-content-header,
+.app-content {
+    background-color: var(--abg-bg);
+    font-family: 'Archivo', system-ui, sans-serif;
+    color: var(--abg-text);
+}
+
+/* ---- Sidebar ---- */
+.app-sidebar {
+    background-color: var(--abg-black) !important;
+}
+
+.app-sidebar .sidebar-brand {
+    border-bottom: 1px solid #262626;
+}
+
+.app-sidebar .sidebar-brand .brand-text {
+    color: #FFFFFF;
+}
+
+.app-sidebar .nav-sidebar > .nav-item > .nav-link,
+.app-sidebar .sidebar-menu > .nav-item > .nav-link {
+    color: #D6D6D6;
+    font-size: 15px;
+    border-radius: 8px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.app-sidebar .nav-link:hover {
+    background-color: #1C1C1C;
+    color: #FFFFFF;
+}
+
+.app-sidebar .nav-link.active {
+    background-color: var(--abg-gold);
+    color: var(--abg-black);
+    font-weight: 700;
+}
+
+.app-sidebar .nav-link.active .nav-icon,
+.app-sidebar .nav-link.active .nav-arrow {
+    color: inherit;
+}
+
+.app-sidebar .nav-treeview {
+    border-left: 1px solid #262626;
+    margin-left: 1rem;
+}
+
+.app-sidebar .nav-treeview > .nav-item > .nav-link {
+    color: #BDBDBD;
+    font-size: 14px;
+}
+
+.app-sidebar .nav-treeview > .nav-item > .nav-link.active {
+    background-color: var(--abg-gold);
+    color: var(--abg-black);
+    font-weight: 700;
+}
+
+/* ---- Top header ---- */
+.app-header {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid var(--abg-border);
+}
+
+.app-header .user-menu .avatar-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--abg-black);
+    color: var(--abg-gold);
+    font-size: 13px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+/* ---- Cards ---- */
+.card {
+    background-color: var(--abg-card);
+    border: 1px solid var(--abg-border);
+    border-radius: 14px;
+    box-shadow: none;
+}
+
+.card-header {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid var(--abg-border);
+    border-radius: 14px 14px 0 0;
+}
+
+.card-header .card-title {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+/* ---- Buttons ---- */
+.btn-primary,
+.btn-success {
+    background-color: var(--abg-gold);
+    border-color: var(--abg-gold);
+    color: var(--abg-black);
+    font-weight: 700;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-success:hover,
+.btn-success:focus {
+    background-color: var(--abg-gold-hover);
+    border-color: var(--abg-gold-hover);
+    color: var(--abg-black);
+}
+
+.btn-secondary,
+.btn-default,
+.btn-outline-secondary {
+    background-color: #FFFFFF;
+    border-color: var(--abg-input-border);
+    color: var(--abg-text);
+}
+
+.btn-secondary:hover,
+.btn-default:hover,
+.btn-outline-secondary:hover {
+    background-color: var(--abg-bg);
+    border-color: var(--abg-input-border);
+    color: var(--abg-text);
+}
+
+/* ---- Links ---- */
+.app-content a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) {
+    color: var(--abg-gold-dark-text);
+}
+
+/* ---- Forms ---- */
+.form-control,
+.form-select {
+    border: 1.5px solid var(--abg-input-border);
+    border-radius: 8px;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--abg-gold);
+    box-shadow: 0 0 0 3px rgba(201, 161, 63, .22);
+}
+
+/* ---- Tables / DataTables ---- */
+/* Bootstrap and the DataTables Bootstrap-5 integration both paint a background directly on
+   each th/td (.table > :not(caption) > * > *, table.table.dataTable > :not(caption) > * > *),
+   and the latter carries two classes in its selector, so it beats an unflagged override here. */
+.table thead th,
+table.dataTable thead th,
+table.dataTable thead > tr > th {
+    background-color: var(--abg-black) !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border-color: var(--abg-black);
+}
+
+.table tbody tr,
+table.dataTable tbody tr {
+    border-color: #EFEBE2;
+}
+
+.table tbody tr:hover,
+table.dataTable tbody tr:hover {
+    background-color: #FAF8F3;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border: 1.5px solid var(--abg-input-border);
+    border-radius: 8px;
+}
+
+.dataTables_wrapper .dataTables_paginate .page-item .page-link {
+    background-color: #FFFFFF;
+    border-color: var(--abg-input-border);
+    color: var(--abg-text);
+}
+
+.dataTables_wrapper .dataTables_paginate .page-item.active .page-link {
+    background-color: var(--abg-black);
+    border-color: var(--abg-black);
+    color: #FFFFFF;
+}
+
+/* ---- Modals ---- */
+.modal-header {
+    background-color: #FFFFFF;
+}
+
+.modal-title {
+    font-weight: 700;
+}
+
+/* ---- Product type badges ---- */
+.badge-service {
+    background-color: var(--abg-service-bg);
+    color: var(--abg-service-text);
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+.badge-item {
+    background-color: var(--abg-item-bg);
+    color: var(--abg-item-text);
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+/* ---- Staff dashboard ---- */
+.staff-greeting-title {
+    font-weight: 700;
+}
+
+.staff-greeting-date {
+    color: var(--abg-muted);
+}
+
+.staff-shortcut {
+    display: block;
+    min-height: 76px;
+    border-radius: 14px;
+}
+
+.staff-shortcut:hover {
+    text-decoration: none;
+}
+
+.staff-shortcut-gold {
+    background-color: var(--abg-gold);
+    border-color: var(--abg-gold);
+}
+
+.staff-shortcut-gold:hover {
+    background-color: var(--abg-gold-hover);
+    border-color: var(--abg-gold-hover);
+}
+
+.staff-shortcut-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.staff-shortcut-icon-dark {
+    background-color: var(--abg-black);
+    color: var(--abg-gold);
+}
+
+.staff-shortcut-icon-copper {
+    background-color: #FAEBDD;
+    color: #B3622C;
+}
+
+.staff-shortcut-title {
+    font-weight: 700;
+    color: var(--abg-text);
+}
+
+.staff-shortcut-gold .staff-shortcut-title,
+.staff-shortcut-gold .staff-shortcut-subtitle {
+    color: var(--abg-black);
+}
+
+.staff-shortcut-subtitle {
+    font-size: 13px;
+    color: var(--abg-muted);
+}
+
+.staff-figure-card {
+    border-radius: 14px;
+}
+
+.staff-figure-label {
+    color: var(--abg-muted);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+}
+
+.staff-figure-amount {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--abg-text);
+}
+
+.staff-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.staff-dot-sm {
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+}
+
+.staff-view-all {
+    color: var(--abg-gold-dark-text);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Deliberately not .table, so the dashboard's black DataTables header styling doesn't apply here */
+.staff-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.staff-table thead th {
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--abg-muted);
+    background-color: transparent;
+    border-bottom: 1px solid var(--abg-border);
+    padding: 6px 8px;
+}
+
+.staff-table tbody td {
+    padding: 8px;
+    border-bottom: 1px solid #EFEBE2;
+    font-size: 14px;
+}
+
+.staff-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.staff-table .amount-col {
+    text-align: right;
+    font-weight: 700;
+}
+
+.staff-card-subtitle {
+    font-size: 13px;
+    color: var(--abg-muted);
+}
+
+/* Long "last 7 days" lists scroll inside the card; header and total stay visible */
+.staff-table-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.staff-table-scroll .staff-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--abg-card);
+}
+
+.staff-table tfoot th {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--abg-card);
+    border-top: 2px solid var(--abg-border);
+    padding: 10px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+}
+
+.staff-table tfoot .amount-col {
+    text-align: right;
+}
+
+/* ---- Partnership ---- */
+.partner-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.partner-avatar-lg {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    font-size: 18px;
+}
+
+.badge-investment {
+    background-color: #E5E9F6;
+    color: #34458A;
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+.badge-operations {
+    background-color: #FAEBDD;
+    color: #8A4A1C;
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+.badge-balance-add {
+    background-color: #FAEBDD;
+    color: #8A4A1C;
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+.badge-balance-over {
+    background-color: var(--abg-service-bg);
+    color: var(--abg-service-text);
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+/* Ownership shares bar: colour only, no text (the legend below carries names/%) */
+.share-bar {
+    display: flex;
+    width: 100%;
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #FFFFFF;
+    gap: 2px;
+}
+
+.share-seg {
+    height: 100%;
+}
+
+.share-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px 20px;
+    margin-top: 16px;
+}
+
+.share-legend-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+}
+
+.share-legend-swatch {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.share-legend-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: break-word;
+    font-weight: 600;
+    color: var(--abg-text);
+}
+
+.share-legend-percent {
+    flex: 0 0 auto;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--abg-text);
+}
+
+.share-legend-sub {
+    flex: 1 0 100%;
+    font-size: 12px;
+    color: var(--abg-muted);
+}
+
+/* Phones: one legend item per row, full width */
+@media (max-width: 575.98px) {
+    .share-legend {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Partners table: scroll sideways on phones instead of squeezing columns */
+.partners-table {
+    width: 100%;
+    min-width: 760px;
+}
+
+.partners-table th:first-child,
+.partners-table td:first-child {
+    min-width: 140px;
+}
+
+.partnership-mini-bar {
+    display: inline-block;
+    width: 70px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--abg-bg);
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+.partnership-mini-bar-fill {
+    display: block;
+    height: 100%;
+    background-color: var(--abg-gold);
+    border-radius: 4px;
+}
+
+.partnership-share-card {
+    background-color: var(--abg-black);
+    border-radius: 14px;
+    color: #FFFFFF;
+}
+
+.partnership-share-card .partnership-share-value {
+    color: var(--abg-gold);
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.partnership-share-card .partnership-share-sub {
+    color: #CFCFCF;
+    font-size: 13px;
+}
+
+/* ---- Payouts ---- */
+.payout-cash-card {
+    background-color: var(--abg-black);
+    border-radius: 14px;
+    color: #FFFFFF;
+}
+
+.payout-cash-card .payout-cash-label {
+    color: #CFCFCF;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+}
+
+.payout-cash-card .payout-cash-amount {
+    color: var(--abg-gold);
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.payout-cash-card .payout-cash-amount-negative {
+    color: var(--abg-negative-on-dark);
+}
+
+.payout-cash-card .payout-cash-sub {
+    color: #CFCFCF;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.badge-paid {
+    background-color: var(--abg-service-bg);
+    color: var(--abg-service-text);
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+.badge-reversed {
+    background-color: #EFEBE2;
+    color: var(--abg-muted);
+    border-radius: 50rem;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+}
+
+.payout-reversal-reason {
+    font-size: 12px;
+    color: var(--abg-muted);
+    margin-top: 2px;
+}
+
+.payout-amount-reversed {
+    color: var(--abg-muted);
+    text-decoration: line-through;
+}
+
+/* Black header, scoped to the payout history table only */
+.payout-history-table thead th {
+    background-color: var(--abg-black);
+    color: #FFFFFF;
+    border-color: var(--abg-black);
+}
+
+.payout-split-table input[type="number"] {
+    min-width: 140px;
+    text-align: right;
+}
+
+.payout-split-table tfoot th {
+    border-top: 2px solid var(--abg-border);
+}
+
+.payout-available-hint {
+    font-size: 13px;
+    color: var(--abg-muted);
+}
+
+.payout-blocked-message {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--abg-negative);
+}
+
+/* ---- Installed app (PWA standalone): keep content clear of notches and the home bar ---- */
+@media (display-mode: standalone) {
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+
+    .app-header {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .app-sidebar {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .app-footer {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+
+    .pos-phone-footer {
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    }
+}
+
+/* ---- History page filters (native date inputs) ---- */
+.history-filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--abg-muted);
+    margin-bottom: 4px;
+}
+
+.history-filter-input {
+    min-height: 42px;
+    font-size: 16px; /* 16px stops iOS zooming in on focus */
+}
+
+.history-filter-btn {
+    min-height: 42px;
+    padding-left: 18px;
+    padding-right: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+/* ---- New sale (POS) ---- */
+.pos-label {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.pos-muted {
+    color: var(--abg-muted);
+}
+
+.pos-text-service {
+    color: var(--abg-service-text);
+}
+
+.pos-text-item {
+    color: var(--abg-item-text);
+}
+
+/* Button-style field that opens a search modal */
+.pos-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 56px;
+    padding: 8px 14px;
+    background-color: #FFFFFF;
+    border: 1.5px solid var(--abg-input-border);
+    border-radius: 8px;
+    color: var(--abg-text);
+    text-align: left;
+}
+
+.pos-field:focus-visible {
+    outline: none;
+    border-color: var(--abg-gold);
+    box-shadow: 0 0 0 3px rgba(201, 161, 63, .22);
+}
+
+.pos-field.is-invalid {
+    border-color: var(--bs-form-invalid-border-color, #dc3545);
+}
+
+.pos-field > .bi {
+    color: var(--abg-muted);
+    font-size: 18px;
+}
+
+.pos-field-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.pos-field-name {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.pos-field-name.pos-placeholder {
+    font-weight: 400;
+    color: var(--abg-muted);
+}
+
+.pos-field-sub {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.pos-clear-customer {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    align-self: center;
+    padding: 0;
+    border-radius: 8px;
+}
+
+/* Quantity stepper */
+.pos-qty-btn {
+    width: 56px;
+    min-width: 56px;
+    height: 56px;
+    padding: 0;
+    font-size: 22px;
+    border-radius: 8px;
+}
+
+.pos-qty-input {
+    height: 56px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.pos-amount-input {
+    min-height: 56px;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.pos-date-input {
+    min-height: 48px;
+    max-width: 260px;
+}
+
+/* Calculated total for items */
+.pos-total-box {
+    background-color: var(--abg-black);
+    color: #FFFFFF;
+    border-radius: 12px;
+    padding: 14px 18px;
+}
+
+.pos-total-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--abg-gold);
+}
+
+.pos-total-amount {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.pos-total-sub {
+    font-size: 14px;
+    color: #CFCFCF;
+}
+
+/* Payment method toggles (radio inputs styled as buttons) */
+.pos-pay-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pos-pay-btn {
+    flex: 1 1 0;
+    min-width: 110px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #FFFFFF;
+    border: 1.5px solid var(--abg-input-border);
+    border-radius: 8px;
+    color: var(--abg-text);
+    font-weight: 600;
+}
+
+.pos-pay-btn:hover {
+    background-color: var(--abg-bg);
+    border-color: var(--abg-input-border);
+    color: var(--abg-text);
+}
+
+.btn-check:checked + .pos-pay-btn,
+.btn-check:checked + .pos-pay-btn:hover {
+    background-color: var(--abg-black);
+    border-color: var(--abg-black);
+    color: #FFFFFF;
+}
+
+.btn-check:focus-visible + .pos-pay-btn {
+    box-shadow: 0 0 0 3px rgba(201, 161, 63, .35);
+}
+
+.pos-btn-lg {
+    min-height: 48px;
+    font-weight: 700;
+}
+
+.pos-btn-xl {
+    min-height: 58px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Phone save bar, kept at the bottom of the screen while the form scrolls */
+.pos-phone-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background-color: #FFFFFF;
+    border-top: 1px solid var(--abg-border);
+    border-radius: 0 0 14px 14px;
+    padding: 10px 16px 14px;
+}
+
+.pos-phone-summary {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--abg-muted);
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+/* Search modals */
+.pos-search-input {
+    min-height: 48px;
+    font-size: 16px;
+}
+
+.pos-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pos-pick-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 14px;
+    background-color: #FFFFFF;
+    border: 1px solid var(--abg-border);
+    border-radius: 8px;
+    text-align: left;
+    color: var(--abg-text);
+}
+
+.pos-pick-row:hover,
+.pos-pick-row:focus-visible {
+    background-color: #FAF8F3;
+    border-color: var(--abg-gold);
+    outline: none;
+}
+
+.pos-pick-name {
+    font-weight: 700;
+}
+
+.pos-pick-sub {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* My sales today */
+.pos-today-summary {
+    font-weight: 700;
+    color: var(--abg-muted);
+}
+
+.pos-today-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #EFEBE2;
+}
+
+.pos-today-row:last-of-type {
+    border-bottom: none;
+}
+
+.pos-today-main {
+    min-width: 0;
+}
+
+.pos-today-name {
+    font-weight: 600;
+}
+
+.pos-today-amount {
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* After saving */
+.pos-success-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: var(--abg-service-bg);
+    color: var(--abg-service-text);
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.pos-success-bar .bi {
+    font-size: 20px;
+}
+
+.pos-saved-panel {
+    display: none;
+}
+
+.pos-saved-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: var(--abg-service-bg);
+    color: var(--abg-service-text);
+    font-size: 38px;
+}
+
+.pos-saved-title {
+    font-weight: 700;
+}
+
+.pos-saved-details > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #EFEBE2;
+}
+
+.pos-saved-details > div:last-child {
+    border-bottom: none;
+}
+
+.pos-saved-details dt {
+    font-weight: 400;
+    color: var(--abg-muted);
+}
+
+.pos-saved-details dd {
+    margin: 0;
+    font-weight: 600;
+    text-align: right;
+}
+
+.pos-saved-total dd {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.pos-section-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--abg-muted);
+}
+
+/* Phone: the saved panel replaces the form until "Record another sale" */
+@media (max-width: 991.98px) {
+    .pos-success-bar-col {
+        display: none;
+    }
+
+    .pos-just-saved .pos-saved-panel {
+        display: block;
+    }
+
+    .pos-just-saved .pos-form-col,
+    .pos-just-saved .pos-today-col {
+        display: none;
+    }
+}
+
+/* ---- Record expense ---- */
+.expense-amount-input {
+    min-height: 56px;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* Quick category / date-choice buttons */
+.expense-cat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    background-color: #FFFFFF;
+    border: 1.5px solid var(--abg-input-border);
+    border-radius: 8px;
+    color: var(--abg-text);
+    font-weight: 600;
+    text-align: center;
+}
+
+.expense-cat-btn:hover {
+    background-color: var(--abg-bg);
+    border-color: var(--abg-input-border);
+    color: var(--abg-text);
+}
+
+.btn-check:checked + .expense-cat-btn,
+.btn-check:checked + .expense-cat-btn:hover,
+.expense-cat-btn.active {
+    background-color: var(--abg-black);
+    border-color: var(--abg-black);
+    color: #FFFFFF;
+}
+
+.btn-check:focus-visible + .expense-cat-btn {
+    box-shadow: 0 0 0 3px rgba(201, 161, 63, .35);
+}
+
+.expense-category-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.expense-date-group {
+    display: flex;
+    gap: 8px;
+}
+
+.expense-date-group .expense-cat-btn {
+    flex: 1 1 0;
+}
+
+/* Description suggestion chips */
+.expense-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.expense-chip {
+    padding: 6px 12px;
+    background-color: #FFFFFF;
+    border: 1px solid var(--abg-border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--abg-text);
+}
+
+.expense-chip:hover,
+.expense-chip:focus-visible {
+    background-color: #FAF8F3;
+    border-color: var(--abg-gold);
+    outline: none;
+}
+
+@media (min-width: 992px) {
+    .expense-category-grid {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .expense-category-grid .expense-cat-btn {
+        width: auto;
+        min-width: 140px;
+        flex: 0 1 auto;
+    }
+}
+
+/* ---- Cash available (dashboard) ---- */
+.cash-available-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.cash-available-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    margin-right: 6px;
+    background-color: var(--abg-service-bg);
+    color: var(--abg-service-text);
+}
+
+.cash-available-figure {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--abg-text);
+}
+
+.cash-available-figure-negative {
+    color: var(--abg-negative);
+}
+
+.cash-available-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.cash-available-operator {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--abg-muted);
+}
+
+.cash-available-box {
+    background-color: var(--abg-bg);
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+
+.cash-available-box-label {
+    font-size: 13px;
+    color: var(--abg-muted);
+}
+
+.cash-available-box-label a {
+    color: inherit;
+}
+
+.cash-available-box-amount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--abg-text);
+}
+
+.cash-available-box-total {
+    background-color: var(--abg-black);
+}
+
+.cash-available-box-total .cash-available-box-label {
+    color: #FFFFFF;
+}
+
+.cash-available-box-total .cash-available-box-amount {
+    color: var(--abg-gold);
+}
+
+.cash-available-box-amount-negative {
+    color: var(--abg-negative-on-dark);
+}
+
+@media (max-width: 575.98px) {
+    .cash-available-body {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* ---- Dashboard: Sales by service ---- */
+.sbs-total {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--abg-text);
+}
+
+.sbs-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex: 0 0 auto;
+}
+
+.sbs-row {
+    padding: 10px 0;
+    border-bottom: 1px solid #EFEBE2;
+}
+
+.sbs-row:last-of-type {
+    border-bottom: none;
+}
+
+.sbs-bar-track {
+    background-color: #F1EEE6;
+    border-radius: 6px;
+    height: 12px;
+    overflow: hidden;
+}
+
+.sbs-bar {
+    height: 100%;
+    border-radius: 6px;
+}
+
+.sbs-change {
+    color: var(--abg-text);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sbs-mix-label {
+    color: var(--abg-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.sbs-mix {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    overflow-x: auto;
+    padding-top: 8px;
+}
+
+.sbs-mix-col {
+    flex: 1 0 36px;
+    min-width: 36px;
+    text-align: center;
+}
+
+.sbs-mix-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 96px;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: #F1EEE6;
+    gap: 2px;
+}
+
+.sbs-mix-seg {
+    width: 100%;
+}
+
+.sbs-mix-month {
+    white-space: nowrap;
+}
+
+.sbs-mix-total {
+    white-space: nowrap;
+    color: var(--abg-text);
+}
+
+/* ---- Dashboard: Expenses by category ---- */
+.ebc-toggle-btn {
+    background-color: transparent;
+    border-color: var(--abg-input-border);
+    color: var(--abg-text);
+}
+
+.ebc-toggle-btn.active {
+    background-color: var(--abg-black);
+    border-color: var(--abg-black);
+    color: #FFFFFF;
+}
+
+.ebc-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 190px) 1fr auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid #EFEBE2;
+}
+
+.ebc-row:last-of-type {
+    border-bottom: none;
+}
+
+.ebc-name {
+    min-width: 0;
+    overflow-wrap: break-word;
+    font-weight: 600;
+    color: var(--abg-text);
+}
+
+.ebc-name a {
+    color: var(--abg-text);
+}
+
+.ebc-bar-wrap {
+    min-width: 0;
+}
+
+.ebc-bar {
+    height: 10px;
+    min-width: 3px;
+    border-radius: 0 4px 4px 0;
+    background-color: var(--abg-expense-copper);
+}
+
+.ebc-bar-grouped {
+    background-color: var(--abg-expense-copper-light);
+}
+
+.ebc-value {
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--abg-text);
+}
+
+.ebc-percent {
+    color: var(--abg-muted);
+    font-weight: 400;
+}
+
+.ebc-change {
+    display: none;
+    color: var(--abg-text);
+}
+
+.ebc-view-change .ebc-percent {
+    display: none;
+}
+
+.ebc-view-change .ebc-change {
+    display: inline;
+}
+
+.ebc-insight {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background-color: #FAF8F3;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--abg-text);
+}
+
+.ebc-insight .bi {
+    color: var(--abg-muted);
+    margin-top: 2px;
+}
+
+/* Phones: name + amount on one line, bar full width underneath */
+@media (max-width: 575.98px) {
+    .ebc-row {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "name value"
+            "bar bar";
+    }
+
+    .ebc-name {
+        grid-area: name;
+    }
+
+    .ebc-value {
+        grid-area: value;
+    }
+
+    .ebc-bar-wrap {
+        grid-area: bar;
+    }
+}
