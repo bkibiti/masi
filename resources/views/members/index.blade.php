@@ -24,44 +24,22 @@
         </div>
 
         <div class="card-body">
-            <form action="{{ route('members.index') }}" method="GET" class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <select name="status" class="form-select">
-                        <option value="">All members</option>
-                        @foreach (\App\Models\Member::STATUSES as $s)
-                            <option value="{{ $s }}" @selected($status === $s)>{{ $s }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-success">Filter</button>
-                </div>
-            </form>
-
             <div class="table-responsive">
                 <table id="fixed-header" class="display table nowrap table-striped table-hover" style="width:100%">
                     <thead>
                         <tr>
-                            <th>No.</th>
                             <th>Name</th>
-                            <th>Gender</th>
                             <th>Mobile</th>
-                            <th>Location</th>
-                            <th>Dependants</th>
-                            <th>Status</th>
+                            <th>Email</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($members as $m)
                             <tr>
-                                <td>{{ $m->member_no }}</td>
                                 <td>{{ $m->name }}</td>
-                                <td>{{ $m->gender }}</td>
-                                <td>{{ $m->phones->pluck('phone')->implode(', ') }}</td>
-                                <td>{{ $m->location }}</td>
-                                <td>{{ $m->living_dependants_count }}@if ($m->dependants_count > $m->living_dependants_count) <small class="text-muted">(+{{ $m->dependants_count - $m->living_dependants_count }} deceased)</small>@endif</td>
-                                <td>@include('members._status', ['status' => $m->status])</td>
+                                <td>{{ $m->phone }}</td>
+                                <td>{{ $m->email }}</td>
                                 <td><a href="{{ route('members.show', $m) }}" class="btn btn-info btn-sm">Open</a></td>
                             </tr>
                         @endforeach

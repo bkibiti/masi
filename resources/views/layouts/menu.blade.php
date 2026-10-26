@@ -2,7 +2,7 @@
     $membersActive = request()->routeIs('members.*');
     $expensesActive = request()->routeIs('expense.*');
     $usersActive = request()->routeIs('roles.*', 'users.*');
-    $mastersActive = request()->routeIs('dependant-categories.*', 'expense-categories.*', 'reminders.*');
+    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*');
 @endphp
 
 <li class="nav-item">
@@ -17,15 +17,6 @@
         <a href="{{ route('members.index') }}" class="nav-link {{ $membersActive ? 'active' : '' }}">
             <i class="nav-icon bi bi-people"></i>
             <p>Members</p>
-        </a>
-    </li>
-@endcan
-
-@can('View Deaths')
-    <li class="nav-item">
-        <a href="{{ route('deaths.index') }}" class="nav-link {{ request()->routeIs('deaths.*') ? 'active' : '' }}">
-            <i class="nav-icon bi bi-journal-bookmark"></i>
-            <p>Deaths</p>
         </a>
     </li>
 @endcan
@@ -93,21 +84,13 @@
     </li>
 @endcanany
 
-@canany(['View Masters', 'Manage Dependant Categories', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders'])
+@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders'])
     <li class="nav-item {{ $mastersActive ? 'menu-open' : '' }}">
         <a href="#" class="nav-link {{ $mastersActive ? 'active' : '' }}">
             <i class="nav-icon bi bi-list-ul"></i>
             <p>Masters <i class="nav-arrow bi bi-chevron-right"></i></p>
         </a>
         <ul class="nav nav-treeview">
-            @can('Manage Dependant Categories')
-                <li class="nav-item">
-                    <a href="{{ route('dependant-categories.index') }}" class="nav-link {{ request()->routeIs('dependant-categories.*') ? 'active' : '' }}">
-                        <i class="nav-icon bi bi-circle"></i>
-                        <p>Dependant Categories</p>
-                    </a>
-                </li>
-            @endcan
             @can('View Expense Categories')
                 <li class="nav-item">
                     <a href="{{ route('expense-categories.index') }}" class="nav-link {{ request()->routeIs('expense-categories.*') ? 'active' : '' }}">

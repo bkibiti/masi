@@ -87,18 +87,6 @@ function formatCompactAmount(float $amount): string
     return number_format($amount);
 }
 
-/**
- * Age in whole years from a date of birth (optionally up to another date, e.g. the date of death).
- */
-function ageInYears($dateOfBirth, $until = null): ?int
-{
-    if (! $dateOfBirth) {
-        return null;
-    }
-
-    return (int) \Carbon\Carbon::parse($dateOfBirth)->diffInYears($until ? \Carbon\Carbon::parse($until) : now(), true);
-}
-
 function getReminders()
 {
     $reminders = DB::table('reminders')

@@ -1,9 +1,6 @@
 <?php
 
 use App\Http\Controllers\ConfigurationsController;
-use App\Http\Controllers\DeathController;
-use App\Http\Controllers\DependantCategoryController;
-use App\Http\Controllers\DependantController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HomeController;
@@ -30,22 +27,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('members/{member}', [MemberController::class, 'show'])->name('members.show')->middleware('can:View Members');
     Route::post('members', [MemberController::class, 'store'])->name('members.store')->middleware('can:Manage Members');
     Route::put('members/{member}', [MemberController::class, 'update'])->name('members.update')->middleware('can:Manage Members');
-
-    // Dependants (wategemezi)
-    Route::post('members/{member}/dependants', [DependantController::class, 'store'])->name('dependants.store')->middleware('can:Manage Dependants');
-    Route::put('dependants/{dependant}', [DependantController::class, 'update'])->name('dependants.update')->middleware('can:Manage Dependants');
-    Route::delete('dependants/{dependant}', [DependantController::class, 'destroy'])->name('dependants.destroy')->middleware('can:Manage Dependants');
-
-    // Deaths (vifo) - history is kept; wrong records are reversed, never deleted
-    Route::get('deaths', [DeathController::class, 'index'])->name('deaths.index')->middleware('can:View Deaths');
-    Route::post('members/{member}/death', [DeathController::class, 'storeForMember'])->name('deaths.member.store')->middleware('can:Record Deaths');
-    Route::post('dependants/{dependant}/death', [DeathController::class, 'storeForDependant'])->name('deaths.dependant.store')->middleware('can:Record Deaths');
-    Route::post('deaths/{death}/reverse', [DeathController::class, 'reverse'])->name('deaths.reverse')->middleware('can:Reverse Deaths');
-
-    // Dependant categories (Wazazi, Wakwe, Watoto, Mume, Mke, ...)
-    Route::resource('masters/dependant-categories', DependantCategoryController::class)->only([
-        'index', 'store', 'update', 'destroy',
-    ])->middleware('can:Manage Dependant Categories');
 
     // Expense Categories routes
     Route::resource('masters/expense-categories', ExpenseCategoryController::class)->only([
