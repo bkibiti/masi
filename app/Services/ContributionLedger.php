@@ -88,7 +88,7 @@ class ContributionLedger
         $allDues = $member->dues()->with('penalties')->get();
         $dueBalance = (float) $allDues->sum(fn (MemberDue $d) => $d->balance());
         $penaltyBalance = (float) $allDues->flatMap(fn (MemberDue $d) => $d->penalties)->sum(fn (MemberPenalty $p) => $p->balance());
-        $totalPaid = (float) $member->payments()->sum('amount');
+        $totalPaid = (float) $member->payments()->ledgerRelevant()->sum('amount');
         $totalAllocated = (float) $allDues->sum('amount_paid') + (float) $allDues->flatMap(fn (MemberDue $d) => $d->penalties)->sum('amount_paid');
 
         return [
@@ -181,6 +181,62 @@ class ContributionLedger
         ];
     }
 
+    /**
+     * Same shape as previewAllocation(), but for a penalty-type payment: outstanding
+     * penalties only, oldest due first, never touching a due's contribution balance.
+     * Read-only: nothing is persisted. Used by the record-payment form's live preview.
+     *
+     * @return array<string, mixed>
+     */
+    public function previewPenaltyAllocation(Member $member, float $amount): array
+    {
+        $dues = $member->dues()->with('penalties')->orderBy('period')->get();
+
+        $remaining = $amount;
+        $arrears = [];
+        $allocation = [];
+
+        foreach ($dues as $due) {
+            foreach ($due->penalties as $penalty) {
+                $penaltyBalance = $penalty->balance();
+                if ($penaltyBalance <= 0) {
+                    continue;
+                }
+
+                $label = $due->period->format('M Y').' penalty';
+
+                $arrears[] = [
+                    'period' => $due->period->toDateString(),
+                    'label' => $label,
+                    'penalty_balance' => $penaltyBalance,
+                    'contribution_balance' => 0.0,
+                    'total_balance' => $penaltyBalance,
+                ];
+
+                $penaltyPay = 0.0;
+                if ($remaining > 0) {
+                    $penaltyPay = min($remaining, $penaltyBalance);
+                    $remaining -= $penaltyPay;
+                }
+
+                if ($penaltyPay > 0) {
+                    $allocation[] = [
+                        'period' => $due->period->toDateString(),
+                        'label' => $label,
+                        'penalty_pay' => $penaltyPay,
+                        'contribution_pay' => 0.0,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'arrears' => $arrears,
+            'allocation' => $allocation,
+            'credit_after' => max(0.0, $remaining),
+        ];
+    }
+
     public function rebuildAll(): void
     {
         Member::query()->orderBy('id')->each(function (Member $member) {
@@ -259,7 +315,10 @@ class ContributionLedger
                 }
             }
 
+            // "none"-type payments (e.g. loan repayments) never touch the ledger.
             $payments = Payment::where('member_id', $member->id)
+                ->ledgerRelevant()
+                ->with('paymentType')
                 ->orderBy('paid_on')
                 ->orderBy('id')
                 ->get();
@@ -280,12 +339,21 @@ class ContributionLedger
                 return $a['order'] <=> $b['order'];
             });
 
-            // 3. Replay the timeline.
+            // 3. Replay the timeline. A monthly-fee payment pays penalties-then-contribution,
+            // oldest due first (unchanged). A penalty-type payment only ever pays outstanding
+            // penalties, oldest first; any leftover queues up as "penalty credit" that gets
+            // applied the moment a new penalty is charged (see chargePenaltyIfOutstanding()).
+            $penaltyCreditQueue = [];
+
             foreach ($events as $event) {
                 if (isset($event['payment'])) {
-                    $this->allocatePayment($event['payment'], $duesState);
+                    if ($event['payment']->paymentType->isPenalty()) {
+                        $this->allocatePenaltyPayment($event['payment'], $duesState, $penaltyCreditQueue);
+                    } else {
+                        $this->allocatePayment($event['payment'], $duesState);
+                    }
                 } else {
-                    $this->chargePenaltyIfOutstanding($member, $duesState[$event['due_index']], $event['date']);
+                    $this->chargePenaltyIfOutstanding($member, $duesState[$event['due_index']], $event['date'], $penaltyCreditQueue);
                 }
             }
 
@@ -380,7 +448,57 @@ class ContributionLedger
         unset($state);
     }
 
-    private function chargePenaltyIfOutstanding(Member $member, array &$state, CarbonImmutable $evaluationDate): void
+    /**
+     * Pay off a penalty-type payment: outstanding penalties only, oldest due first, never
+     * touching a due's contribution. Anything left over queues up as penalty credit, to be
+     * applied the moment a new penalty is charged (see chargePenaltyIfOutstanding()).
+     *
+     * @param  array<int, array>  $duesState
+     * @param  array<int, array{payment_id: int, amount: float}>  $penaltyCreditQueue
+     */
+    private function allocatePenaltyPayment(Payment $payment, array &$duesState, array &$penaltyCreditQueue): void
+    {
+        $remaining = (float) $payment->amount;
+
+        foreach ($duesState as &$state) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            foreach ($state['penalties'] as &$penaltyState) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
+                $balance = $penaltyState['amount'] - $penaltyState['amount_paid'];
+                if ($balance <= 0) {
+                    continue;
+                }
+
+                $pay = min($remaining, $balance);
+                $penaltyState['amount_paid'] += $pay;
+                $remaining -= $pay;
+
+                PaymentAllocation::create([
+                    'payment_id' => $payment->id,
+                    'allocatable_type' => MemberPenalty::class,
+                    'allocatable_id' => $penaltyState['model']->id,
+                    'amount' => $pay,
+                ]);
+            }
+            unset($penaltyState);
+        }
+        unset($state);
+
+        if ($remaining > 0) {
+            $penaltyCreditQueue[] = ['payment_id' => $payment->id, 'amount' => $remaining];
+        }
+    }
+
+    /**
+     * @param  array<int, array{payment_id: int, amount: float}>  $penaltyCreditQueue
+     */
+    private function chargePenaltyIfOutstanding(Member $member, array &$state, CarbonImmutable $evaluationDate, array &$penaltyCreditQueue): void
     {
         if ($state['amount_paid'] >= $state['amount']) {
             return;
@@ -398,10 +516,35 @@ class ContributionLedger
             'amount_paid' => 0,
         ]);
 
+        // Pre-pay this brand-new penalty from any leftover penalty-type overpayment, oldest first.
+        $penaltyPaid = 0.0;
+        while ($penaltyPaid < $penaltyAmount && ! empty($penaltyCreditQueue)) {
+            $take = min($penaltyCreditQueue[0]['amount'], $penaltyAmount - $penaltyPaid);
+
+            PaymentAllocation::create([
+                'payment_id' => $penaltyCreditQueue[0]['payment_id'],
+                'allocatable_type' => MemberPenalty::class,
+                'allocatable_id' => $penalty->id,
+                'amount' => $take,
+            ]);
+
+            $penaltyPaid += $take;
+            $penaltyCreditQueue[0]['amount'] -= $take;
+
+            if ($penaltyCreditQueue[0]['amount'] <= 0) {
+                array_shift($penaltyCreditQueue);
+            }
+        }
+
+        if ($penaltyPaid > 0) {
+            $penalty->amount_paid = $penaltyPaid;
+            $penalty->save();
+        }
+
         $state['penalties'][] = [
             'model' => $penalty,
             'amount' => $penaltyAmount,
-            'amount_paid' => 0.0,
+            'amount_paid' => $penaltyPaid,
         ];
     }
 }

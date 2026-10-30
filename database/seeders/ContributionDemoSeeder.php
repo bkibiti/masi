@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Models\ContributionSetting;
 use App\Models\Member;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\PaymentType;
 use App\Models\User;
 use App\Services\ContributionLedger;
 use Illuminate\Database\Seeder;
@@ -75,6 +77,8 @@ class ContributionDemoSeeder extends Seeder
     {
         return Payment::create([
             'member_id' => $member->id,
+            'payment_method_id' => PaymentMethod::where('name', 'M-Koba')->value('id'),
+            'payment_type_id' => PaymentType::where('name', 'Monthly Fee')->value('id'),
             'amount' => $amount,
             'paid_on' => $paidOn,
             'recorded_by' => $recordedBy,

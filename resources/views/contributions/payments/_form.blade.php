@@ -6,6 +6,10 @@
 @php
     $modalId = $mode === 'create' ? 'record-payment' : 'edit-payment';
     $fixedMember = count($members) === 1 ? $members[0] ?? $members->first() : null;
+    // Queried directly (not passed in) so this always lists active-only options regardless
+    // of what the including page also has in scope (e.g. the payments list's filter dropdowns).
+    $activeMethods = \App\Models\PaymentMethod::where('is_active', true)->orderBy('name')->get();
+    $activeTypes = \App\Models\PaymentType::where('is_active', true)->orderBy('name')->get();
 @endphp
 <div class="modal fade" id="{{ $modalId }}" tabindex="-1">
     <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
@@ -34,6 +38,24 @@
                                 @endforeach
                             </select>
                         @endif
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Payment type <span class="text-danger">*</span></label>
+                        <select name="payment_type_id" class="form-select payment-type-id" required>
+                            <option value="">Select type</option>
+                            @foreach ($activeTypes as $type)
+                                <option value="{{ $type->id }}" data-ledger-role="{{ $type->ledger_role }}">{{ $type->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Payment method <span class="text-danger">*</span></label>
+                        <select name="payment_method_id" class="form-select payment-method-id" required>
+                            <option value="">Select method</option>
+                            @foreach ($activeMethods as $method)
+                                <option value="{{ $method->id }}">{{ $method->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Amount <span class="text-danger">*</span></label>
@@ -73,6 +95,11 @@
                 }
 
                 function renderPreview($container, data) {
+                    if (data.ledger_role === 'none') {
+                        $container.html('<span class="text-muted">This payment type is recorded only; it does not affect the contribution ledger.</span>');
+                        return;
+                    }
+
                     if (! data.arrears.length) {
                         $container.html('<span class="text-success">No arrears. The full amount will be recorded as credit / this month\'s contribution.</span>');
                         return;
@@ -100,14 +127,15 @@
                 function updatePreview($form) {
                     var memberId = $form.find('.payment-member-id').val();
                     var amount = $form.find('.payment-amount').val();
+                    var paymentTypeId = $form.find('.payment-type-id').val();
                     var $preview = $form.find('.payment-preview');
 
-                    if (! memberId || ! amount || Number(amount) <= 0) {
-                        $preview.text('Select a member and enter an amount to preview how it will be allocated.');
+                    if (! memberId || ! amount || Number(amount) <= 0 || ! paymentTypeId) {
+                        $preview.text('Select a member, payment type and amount to preview how it will be allocated.');
                         return;
                     }
 
-                    $.getJSON(@json(route('contributions.payments.preview')), { member_id: memberId, amount: amount })
+                    $.getJSON(@json(route('contributions.payments.preview')), { member_id: memberId, amount: amount, payment_type_id: paymentTypeId })
                         .done(function (data) {
                             renderPreview($preview, data);
                         })
@@ -116,7 +144,7 @@
                         });
                 }
 
-                $(document).on('change', '.payment-member-id', function () {
+                $(document).on('change', '.payment-member-id, .payment-type-id', function () {
                     updatePreview($(this).closest('form'));
                 });
                 $(document).on('input', '.payment-amount', function () {
@@ -131,6 +159,8 @@
                     var $form = $(this).find('form');
                     $form.attr('action', b.data('action'));
                     $form.find('.payment-member-id').val(b.data('memberId'));
+                    $form.find('.payment-type-id').val(b.data('paymentTypeId'));
+                    $form.find('.payment-method-id').val(b.data('paymentMethodId'));
                     $form.find('[name=amount]').val(b.data('amount'));
                     $form.find('[name=paid_on]').val(b.data('paidOn'));
                     $form.find('[name=reference]').val(b.data('reference'));
@@ -144,7 +174,7 @@
                     if (b && b.data('memberId')) {
                         $form.find('.payment-member-id').val(b.data('memberId'));
                     }
-                    $form.find('.payment-preview').text('Select a member and enter an amount to preview how it will be allocated.');
+                    $form.find('.payment-preview').text('Select a member, payment type and amount to preview how it will be allocated.');
                 });
             });
         </script>

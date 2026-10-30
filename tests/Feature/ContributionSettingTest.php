@@ -6,6 +6,8 @@ use App\Models\ContributionSetting;
 use App\Models\Member;
 use App\Models\MemberDue;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\PaymentType;
 use App\Models\User;
 use App\Services\ContributionLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,7 +66,13 @@ class ContributionSettingTest extends TestCase
         $member = Member::factory()->create();
         $member->created_at = '2025-01-10';
         $member->save();
-        Payment::create(['member_id' => $member->id, 'amount' => 40000, 'paid_on' => '2025-01-15']);
+        Payment::create([
+            'member_id' => $member->id,
+            'payment_method_id' => PaymentMethod::where('name', 'M-Koba')->value('id'),
+            'payment_type_id' => PaymentType::where('name', 'Monthly Fee')->value('id'),
+            'amount' => 40000,
+            'paid_on' => '2025-01-15',
+        ]);
 
         app(ContributionLedger::class)->rebuildForMember($member);
         $this->assertTrue($setting->refresh()->isLocked());

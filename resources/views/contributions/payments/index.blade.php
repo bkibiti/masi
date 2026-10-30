@@ -40,6 +40,22 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <select name="payment_type_id" class="form-select">
+                        <option value="">All types</option>
+                        @foreach ($paymentTypes as $type)
+                            <option value="{{ $type->id }}" @selected((string) $paymentTypeId === (string) $type->id)>{{ $type->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="payment_method_id" class="form-select">
+                        <option value="">All methods</option>
+                        @foreach ($paymentMethods as $method)
+                            <option value="{{ $method->id }}" @selected((string) $paymentMethodId === (string) $method->id)>{{ $method->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-1">
                     <button type="submit" class="btn btn-success">Filter</button>
                 </div>
             </form>
@@ -51,8 +67,10 @@
                             <th>Paid on</th>
                             <th>Member</th>
                             <th class="text-end">Amount</th>
+                            <th>Type</th>
+                            <th>Method</th>
                             <th>Reference</th>
-                            <th>Recorded by</th>
+              
                             <th></th>
                         </tr>
                     </thead>
@@ -62,13 +80,16 @@
                                 <td>{{ $payment->paid_on->format('j M Y') }}</td>
                                 <td><a href="{{ route('members.show', $payment->member_id) }}">{{ $payment->member?->name }}</a></td>
                                 <td class="text-end">{{ formatAmount($payment->amount) }}</td>
+                                <td>{{ $payment->paymentType?->name ?? '—' }}</td>
+                                <td>{{ $payment->paymentMethod?->name ?? '—' }}</td>
                                 <td>{{ $payment->reference ?: '—' }}</td>
-                                <td>{{ $payment->recorder?->name ?? '—' }}</td>
+                     
                                 <td class="text-end" style="white-space: nowrap">
                                     @can('Manage Payments')
                                         <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#edit-payment"
                                             data-action="{{ route('contributions.payments.update', $payment) }}"
                                             data-member-id="{{ $payment->member_id }}"
+                                            data-payment-type-id="{{ $payment->payment_type_id }}" data-payment-method-id="{{ $payment->payment_method_id }}"
                                             data-amount="{{ $payment->amount }}" data-paid-on="{{ $payment->paid_on->toDateString() }}"
                                             data-reference="{{ $payment->reference }}" data-notes="{{ $payment->notes }}">Edit</button>
                                         <form method="POST" action="{{ route('contributions.payments.destroy', $payment) }}" class="d-inline"

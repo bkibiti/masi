@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,7 @@ class Payment extends Model
 
     protected $table = 'payments';
 
-    protected $fillable = ['member_id', 'amount', 'paid_on', 'reference', 'notes', 'recorded_by'];
+    protected $fillable = ['member_id', 'payment_method_id', 'payment_type_id', 'amount', 'paid_on', 'reference', 'notes', 'recorded_by'];
 
     protected function casts(): array
     {
@@ -28,6 +29,16 @@ class Payment extends Model
         return $this->belongsTo(Member::class);
     }
 
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
+    public function paymentType(): BelongsTo
+    {
+        return $this->belongsTo(PaymentType::class);
+    }
+
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
@@ -36,5 +47,13 @@ class Payment extends Model
     public function allocations(): HasMany
     {
         return $this->hasMany(PaymentAllocation::class);
+    }
+
+    /**
+     * Payments whose type actually feeds the contribution ledger (excludes "none", e.g. loan repayments).
+     */
+    public function scopeLedgerRelevant(Builder $query): Builder
+    {
+        return $query->whereHas('paymentType', fn ($q) => $q->where('ledger_role', '!=', PaymentType::ROLE_NONE));
     }
 }

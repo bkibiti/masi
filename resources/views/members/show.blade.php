@@ -76,8 +76,10 @@
                                     <tr>
                                         <th>Paid on</th>
                                         <th class="text-end">Amount</th>
+                                        <th>Type</th>
+                                        <th>Method</th>
                                         <th>Reference</th>
-                                        <th>Recorded by</th>
+                              
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -86,13 +88,16 @@
                                         <tr>
                                             <td>{{ $payment->paid_on->format('j M Y') }}</td>
                                             <td class="text-end">{{ formatAmount($payment->amount) }}</td>
+                                            <td>{{ $payment->paymentType?->name ?? '—' }}</td>
+                                            <td>{{ $payment->paymentMethod?->name ?? '—' }}</td>
                                             <td>{{ $payment->reference ?: '—' }}</td>
-                                            <td>{{ $payment->recorder?->name ?? '—' }}</td>
+                                  
                                             <td class="text-end" style="white-space: nowrap">
                                                 @can('Manage Payments')
                                                     <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#edit-payment"
                                                         data-action="{{ route('contributions.payments.update', $payment) }}"
                                                         data-member-id="{{ $payment->member_id }}" data-member-name="{{ $member->name }}"
+                                                        data-payment-type-id="{{ $payment->payment_type_id }}" data-payment-method-id="{{ $payment->payment_method_id }}"
                                                         data-amount="{{ $payment->amount }}" data-paid-on="{{ $payment->paid_on->toDateString() }}"
                                                         data-reference="{{ $payment->reference }}" data-notes="{{ $payment->notes }}">Edit</button>
                                                     <form method="POST" action="{{ route('contributions.payments.destroy', $payment) }}" class="d-inline"
@@ -105,7 +110,7 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="5" class="text-muted p-3">No payments recorded yet.</td></tr>
+                                        <tr><td colspan="7" class="text-muted p-3">No payments recorded yet.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

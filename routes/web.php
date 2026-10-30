@@ -8,6 +8,8 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PaymentMethodController;
+use App\Http\Controllers\PaymentTypeController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
@@ -36,6 +38,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('masters/contribution-settings', [ContributionSettingController::class, 'store'])->name('contribution-settings.store')->middleware('can:Manage Contribution Settings');
     Route::put('masters/contribution-settings/{contributionSetting}', [ContributionSettingController::class, 'update'])->name('contribution-settings.update')->middleware('can:Manage Contribution Settings');
     Route::delete('masters/contribution-settings/{contributionSetting}', [ContributionSettingController::class, 'destroy'])->name('contribution-settings.destroy')->middleware('can:Manage Contribution Settings');
+
+    // Payment methods (Masters)
+    Route::get('masters/payment-methods', [PaymentMethodController::class, 'index'])->name('payment-methods.index')->middleware('can:View Payment Methods');
+    Route::post('masters/payment-methods', [PaymentMethodController::class, 'store'])->name('payment-methods.store')->middleware('can:Manage Payment Methods');
+    Route::put('masters/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('payment-methods.update')->middleware('can:Manage Payment Methods');
+    Route::delete('masters/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->name('payment-methods.destroy')->middleware('can:Manage Payment Methods');
+
+    // Payment types (Masters)
+    Route::get('masters/payment-types', [PaymentTypeController::class, 'index'])->name('payment-types.index')->middleware('can:View Payment Types');
+    Route::post('masters/payment-types', [PaymentTypeController::class, 'store'])->name('payment-types.store')->middleware('can:Manage Payment Types');
+    Route::put('masters/payment-types/{paymentType}', [PaymentTypeController::class, 'update'])->name('payment-types.update')->middleware('can:Manage Payment Types');
+    Route::delete('masters/payment-types/{paymentType}', [PaymentTypeController::class, 'destroy'])->name('payment-types.destroy')->middleware('can:Manage Payment Types');
 
     // Contributions: register + payments
     Route::get('contributions/register', [ContributionController::class, 'register'])->name('contributions.register')->middleware('can:View Contributions');

@@ -2,7 +2,7 @@
     $membersActive = request()->routeIs('members.*');
     $expensesActive = request()->routeIs('expense.*');
     $usersActive = request()->routeIs('roles.*', 'users.*');
-    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*', 'contribution-settings.*');
+    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*', 'contribution-settings.*', 'payment-methods.*', 'payment-types.*');
     $contributionsActive = request()->routeIs('contributions.*');
 @endphp
 
@@ -110,7 +110,7 @@
     </li>
 @endcanany
 
-@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings'])
+@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings', 'View Payment Methods', 'View Payment Types'])
     <li class="nav-item {{ $mastersActive ? 'menu-open' : '' }}">
         <a href="#" class="nav-link {{ $mastersActive ? 'active' : '' }}">
             <i class="nav-icon bi bi-list-ul"></i>
@@ -122,6 +122,22 @@
                     <a href="{{ route('contribution-settings.index') }}" class="nav-link {{ request()->routeIs('contribution-settings.*') ? 'active' : '' }}">
                         <i class="nav-icon bi bi-circle"></i>
                         <p>Contribution Settings</p>
+                    </a>
+                </li>
+            @endcan
+            @can('View Payment Methods')
+                <li class="nav-item">
+                    <a href="{{ route('payment-methods.index') }}" class="nav-link {{ request()->routeIs('payment-methods.*') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Payment Methods</p>
+                    </a>
+                </li>
+            @endcan
+            @can('View Payment Types')
+                <li class="nav-item">
+                    <a href="{{ route('payment-types.index') }}" class="nav-link {{ request()->routeIs('payment-types.*') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Payment Types</p>
                     </a>
                 </li>
             @endcan

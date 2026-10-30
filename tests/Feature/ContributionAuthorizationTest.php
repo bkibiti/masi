@@ -57,4 +57,20 @@ class ContributionAuthorizationTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_the_payments_list_renders_with_the_record_and_edit_payment_forms(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(
+            Permission::create(['name' => 'View Contributions', 'guard_name' => 'web']),
+            Permission::create(['name' => 'Record Payments', 'guard_name' => 'web']),
+            Permission::create(['name' => 'Manage Payments', 'guard_name' => 'web']),
+        );
+
+        $response = $this->actingAs($user)->get(route('contributions.payments.index'));
+
+        $response->assertOk();
+        $response->assertSee('Payment type');
+        $response->assertSee('Payment method');
+    }
 }

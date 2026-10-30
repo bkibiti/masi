@@ -22,7 +22,7 @@ class MemberController extends Controller
     {
         $year = (int) $request->query('year', now()->year);
         $statement = $ledger->statementForMember($member, $year);
-        $payments = $member->payments()->with('recorder')->latest('paid_on')->latest('id')->get();
+        $payments = $member->payments()->with(['recorder', 'paymentType', 'paymentMethod'])->latest('paid_on')->latest('id')->get();
         $years = range(now()->year - 2, now()->year + 1);
 
         return view('members.show', compact('member', 'statement', 'year', 'years', 'payments'));

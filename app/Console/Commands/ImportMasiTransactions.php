@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Member;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\PaymentType;
 use App\Models\User;
 use App\Services\ContributionLedger;
 use Carbon\Carbon;
@@ -31,10 +33,18 @@ class ImportMasiTransactions extends Command
     public function handle(ContributionLedger $ledger): int
     {
         $dir = database_path('import');
-        $members = $this->readCsv($dir . DIRECTORY_SEPARATOR . 'masi_members.csv');
-        $payments = $this->readCsv($dir . DIRECTORY_SEPARATOR . 'masi_payments.csv');
+        $members = $this->readCsv($dir.DIRECTORY_SEPARATOR.'masi_members.csv');
+        $payments = $this->readCsv($dir.DIRECTORY_SEPARATOR.'masi_payments.csv');
 
         if ($members === null || $payments === null) {
+            return self::FAILURE;
+        }
+
+        $mKobaMethod = PaymentMethod::where('name', 'M-Koba')->first();
+        $monthlyFeeType = PaymentType::where('name', 'Monthly Fee')->first();
+        if (! $mKobaMethod || ! $monthlyFeeType) {
+            $this->components->error('The "M-Koba" payment method and/or "Monthly Fee" payment type do not exist yet. Run the payment methods/types migration first.');
+
             return self::FAILURE;
         }
 
@@ -50,7 +60,7 @@ class ImportMasiTransactions extends Command
         $unknown = collect($payments)->pluck('member_name')->unique()
             ->reject(fn ($name) => isset($known[$this->key($name)]));
         if ($unknown->isNotEmpty()) {
-            $this->components->error('Payments reference members not in masi_members.csv: ' . $unknown->implode(', '));
+            $this->components->error('Payments reference members not in masi_members.csv: '.$unknown->implode(', '));
 
             return self::FAILURE;
         }
@@ -59,7 +69,7 @@ class ImportMasiTransactions extends Command
         $recordedBy = User::query()->orderBy('id')->value('id');
         $summary = ['members_created' => 0, 'members_existing' => 0, 'payments_created' => 0, 'payments_skipped' => 0];
 
-        $work = function () use ($members, $payments, $joinedOverride, $recordedBy, $dryRun, &$summary) {
+        $work = function () use ($members, $payments, $joinedOverride, $recordedBy, $dryRun, $mKobaMethod, $monthlyFeeType, &$summary) {
             if ($this->option('purge-demo')) {
                 $demo = Member::query()->whereIn('phone', self::DEMO_PHONES)->get();
                 $this->components->info("Purging {$demo->count()} demo member(s).");
@@ -110,6 +120,8 @@ class ImportMasiTransactions extends Command
                 if (! $dryRun) {
                     Payment::create([
                         'member_id' => $member->id,
+                        'payment_method_id' => $mKobaMethod->id,
+                        'payment_type_id' => $monthlyFeeType->id,
                         'amount' => (float) $row['amount'],
                         'paid_on' => $row['paid_on'],
                         'reference' => $row['reference'],
@@ -129,7 +141,7 @@ class ImportMasiTransactions extends Command
 
         $total = collect($payments)->sum(fn ($p) => (float) $p['amount']);
         $this->table(['Item', 'Count'], collect($summary)->map(fn ($v, $k) => [str_replace('_', ' ', $k), $v])->values());
-        $this->components->info('Payments in file: ' . count($payments) . ' totalling TZS ' . number_format($total));
+        $this->components->info('Payments in file: '.count($payments).' totalling TZS '.number_format($total));
 
         if ($dryRun) {
             $this->components->warn('Dry run: nothing was saved.');

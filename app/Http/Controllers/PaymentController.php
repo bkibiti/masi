@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Member;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\PaymentType;
 use App\Services\ContributionLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,35 +20,54 @@ class PaymentController extends Controller
         $from = $request->query('from_date');
         $to = $request->query('to_date');
         $memberId = $request->query('member_id');
+        $paymentMethodId = $request->query('payment_method_id');
+        $paymentTypeId = $request->query('payment_type_id');
 
         $payments = Payment::query()
-            ->with(['member', 'recorder'])
+            ->with(['member', 'recorder', 'paymentMethod', 'paymentType'])
             ->when($from, fn ($q) => $q->whereDate('paid_on', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('paid_on', '<=', $to))
             ->when($memberId, fn ($q) => $q->where('member_id', $memberId))
+            ->when($paymentMethodId, fn ($q) => $q->where('payment_method_id', $paymentMethodId))
+            ->when($paymentTypeId, fn ($q) => $q->where('payment_type_id', $paymentTypeId))
             ->latest('paid_on')
             ->latest('id')
             ->get();
 
         $members = Member::orderBy('name')->get();
+        $paymentMethods = PaymentMethod::orderBy('name')->get();
+        $paymentTypes = PaymentType::orderBy('name')->get();
 
-        return view('contributions.payments.index', compact('payments', 'members', 'from', 'to', 'memberId'));
+        return view('contributions.payments.index', compact(
+            'payments', 'members', 'paymentMethods', 'paymentTypes', 'from', 'to', 'memberId', 'paymentMethodId', 'paymentTypeId'
+        ));
     }
 
     /**
-     * Live preview: for a member and amount, how it would be allocated against their
-     * current arrears. Used by the record-payment form before saving.
+     * Live preview: for a member, amount and payment type, how it would be allocated
+     * against their current arrears. Used by the record-payment form before saving.
+     * There is no ledger preview for a "none" (not ledger-relevant) payment type.
      */
     public function preview(Request $request, ContributionLedger $ledger): JsonResponse
     {
         $data = $request->validate([
             'member_id' => 'required|exists:members,id',
             'amount' => 'required|numeric|min:0.01',
+            'payment_type_id' => 'required|exists:payment_types,id',
         ]);
 
         $member = Member::findOrFail($data['member_id']);
+        $paymentType = PaymentType::findOrFail($data['payment_type_id']);
 
-        return response()->json($ledger->previewAllocation($member, (float) $data['amount']));
+        if (! $paymentType->isLedgerRelevant()) {
+            return response()->json(['ledger_role' => $paymentType->ledger_role, 'arrears' => [], 'allocation' => [], 'credit_after' => null]);
+        }
+
+        $preview = $paymentType->isPenalty()
+            ? $ledger->previewPenaltyAllocation($member, (float) $data['amount'])
+            : $ledger->previewAllocation($member, (float) $data['amount']);
+
+        return response()->json([...$preview, 'ledger_role' => $paymentType->ledger_role]);
     }
 
     public function store(Request $request, ContributionLedger $ledger): RedirectResponse
@@ -101,6 +122,8 @@ class PaymentController extends Controller
     {
         return $request->validate([
             'member_id' => 'required|exists:members,id',
+            'payment_method_id' => 'required|exists:payment_methods,id',
+            'payment_type_id' => 'required|exists:payment_types,id',
             'amount' => 'required|numeric|min:0.01',
             'paid_on' => 'required|date|before_or_equal:today',
             'reference' => 'nullable|string|max:150',
