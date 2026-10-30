@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Setting;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 function getRoles()
@@ -89,17 +90,19 @@ function formatCompactAmount(float $amount): string
 
 function getReminders()
 {
-    $reminders = DB::table('reminders')
-        ->select(DB::raw('name,end_date,datediff(end_date,now()) days'))
-        ->whereRaw("datediff(end_date,now()) <= days_to_remind and status='On'")
-        ->get();
+    $today = Carbon::today();
 
     $msg = [];
-    foreach ($reminders as $r) {
-        if ($r->days > 0) {
-            $msg[] = $r->name.' is due in '.$r->days.' days';
-        } elseif ($r->days < 0) {
-            $msg[] = $r->name.' is overdue by '.(0 - (int) $r->days).' days';
+    foreach (DB::table('reminders')->where('status', 'On')->get(['name', 'end_date', 'days_to_remind']) as $r) {
+        $days = (int) $today->diffInDays(Carbon::parse($r->end_date), false);
+        if ($days > $r->days_to_remind) {
+            continue;
+        }
+
+        if ($days > 0) {
+            $msg[] = $r->name.' is due in '.$days.' days';
+        } elseif ($days < 0) {
+            $msg[] = $r->name.' is overdue by '.(0 - $days).' days';
         } else {
             $msg[] = $r->name.' is due today';
         }

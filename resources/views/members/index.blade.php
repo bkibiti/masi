@@ -40,7 +40,14 @@
                                 <td>{{ $m->name }}</td>
                                 <td>{{ $m->phone }}</td>
                                 <td>{{ $m->email }}</td>
-                                <td><a href="{{ route('members.show', $m) }}" class="btn btn-info btn-sm">Open</a></td>
+                                <td style="white-space: nowrap">
+                                    <a href="{{ route('members.show', $m) }}" class="btn btn-info btn-sm">Open</a>
+                                    @can('Manage Members')
+                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#edit-member-{{ $m->id }}">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+                                    @endcan
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -69,6 +76,28 @@
             </form>
         </div>
     </div>
+
+    @foreach ($members as $m)
+        <div class="modal fade" id="edit-member-{{ $m->id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+                <form method="POST" action="{{ route('members.update', $m) }}" class="modal-content">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Member</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @include('members._form', ['member' => $m, 'modalId' => 'edit-member-' . $m->id])
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endforeach
 @endcan
 @endsection
 
@@ -77,9 +106,14 @@
     <script>
         document.title = document.title.concat(" | Members");
 
-        @if ($errors->any() && old('_modal') === 'create-member')
-            // Reopen the form after a failed save so the entered values are not lost
-            $(function () { bootstrap.Modal.getOrCreateInstance(document.getElementById('create-member')).show(); });
+        @if ($errors->any() && old('_modal'))
+            // Reopen the form that failed validation so the entered values are not lost
+            $(function () {
+                const failed = document.getElementById(@json(old('_modal')));
+                if (failed) {
+                    bootstrap.Modal.getOrCreateInstance(failed).show();
+                }
+            });
         @endif
     </script>
 @endpush

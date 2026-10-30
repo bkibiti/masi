@@ -60,16 +60,12 @@ class ExpenseController extends Controller
                 ->pluck('expense_description');
         }
 
-        $todayExpenses = Expense::with('category')
-            ->where('updated_by', $userId)
+        $todayExpenses = Expense::where('updated_by', $userId)
             ->where('created_at', '>=', $todayStart)
-            ->where('created_at', '<', $todayEnd)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->get();
+            ->where('created_at', '<', $todayEnd);
 
-        $todayCount = $todayExpenses->count();
-        $todayTotal = $todayExpenses->sum('amount');
+        $todayCount = (clone $todayExpenses)->count();
+        $todayTotal = (clone $todayExpenses)->sum('amount');
 
         $lastExpense = session('last_expense');
         if ($lastExpense) {
@@ -81,7 +77,6 @@ class ExpenseController extends Controller
             'quickCategories',
             'allCategories',
             'recentDescriptions',
-            'todayExpenses',
             'todayCount',
             'todayTotal',
             'lastExpense',

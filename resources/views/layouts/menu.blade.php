@@ -2,7 +2,8 @@
     $membersActive = request()->routeIs('members.*');
     $expensesActive = request()->routeIs('expense.*');
     $usersActive = request()->routeIs('roles.*', 'users.*');
-    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*');
+    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*', 'contribution-settings.*');
+    $contributionsActive = request()->routeIs('contributions.*');
 @endphp
 
 <li class="nav-item">
@@ -20,6 +21,31 @@
         </a>
     </li>
 @endcan
+
+@canany(['View Contributions', 'Record Payments', 'Manage Payments'])
+    <li class="nav-item {{ $contributionsActive ? 'menu-open' : '' }}">
+        <a href="#" class="nav-link {{ $contributionsActive ? 'active' : '' }}">
+            <i class="nav-icon bi bi-cash-stack"></i>
+            <p>Contributions <i class="nav-arrow bi bi-chevron-right"></i></p>
+        </a>
+        <ul class="nav nav-treeview">
+            @can('View Contributions')
+                <li class="nav-item">
+                    <a href="{{ route('contributions.register') }}" class="nav-link {{ request()->routeIs('contributions.register') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Register</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('contributions.payments.index') }}" class="nav-link {{ request()->routeIs('contributions.payments.*') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Payments</p>
+                    </a>
+                </li>
+            @endcan
+        </ul>
+    </li>
+@endcanany
 
 @canany(['View Expense Management', 'View Expenses', 'Add Expenses', 'Edit Expenses'])
     <li class="nav-item {{ $expensesActive ? 'menu-open' : '' }}">
@@ -84,13 +110,21 @@
     </li>
 @endcanany
 
-@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders'])
+@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings'])
     <li class="nav-item {{ $mastersActive ? 'menu-open' : '' }}">
         <a href="#" class="nav-link {{ $mastersActive ? 'active' : '' }}">
             <i class="nav-icon bi bi-list-ul"></i>
             <p>Masters <i class="nav-arrow bi bi-chevron-right"></i></p>
         </a>
         <ul class="nav nav-treeview">
+            @can('View Contribution Settings')
+                <li class="nav-item">
+                    <a href="{{ route('contribution-settings.index') }}" class="nav-link {{ request()->routeIs('contribution-settings.*') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Contribution Settings</p>
+                    </a>
+                </li>
+            @endcan
             @can('View Expense Categories')
                 <li class="nav-item">
                     <a href="{{ route('expense-categories.index') }}" class="nav-link {{ request()->routeIs('expense-categories.*') ? 'active' : '' }}">

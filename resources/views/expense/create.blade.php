@@ -13,7 +13,6 @@ Record expense
 @section("content")
 
 @php
-    $toLocalTime = fn ($date) => \Carbon\CarbonImmutable::parse($date)->setTimezone('Africa/Dar_es_Salaam');
     $quickCategoryIds = $quickCategories->pluck('id')->all();
     $selectedCategoryId = (int) old('expense_category_id');
     $selectedIsOther = $selectedCategoryId && ! in_array($selectedCategoryId, $quickCategoryIds, true);
@@ -65,7 +64,7 @@ Record expense
             </div>
         @endif
 
-        <div class="col-lg-8 mb-4 pos-form-col">
+        <div class="col-lg-12 mb-4 pos-form-col">
             <form method="POST" action="{{ route('expense.store') }}" id="expense_form" class="card pos-form-card" novalidate>
                 @csrf
 
@@ -73,7 +72,7 @@ Record expense
 
                     {{-- 1. Amount --}}
                     <div class="mb-4">
-                        <label class="form-label pos-label" for="amount_display">Amount (TZS)</label>
+                        <label class="form-label pos-label" for="amount_display">Amount</label>
                         <input type="hidden" name="amount" id="amount" value="{{ old('amount') }}">
                         <input type="text" class="form-control expense-amount-input @error('amount') is-invalid @enderror" id="amount_display"
                             inputmode="numeric" autocomplete="off" autofocus value="{{ old('amount') ? formatAmount(old('amount')) : '' }}">
@@ -149,38 +148,9 @@ Record expense
 
                 {{-- 5. Phone buttons --}}
                 <div class="pos-phone-footer d-lg-none">
-                    <div class="pos-phone-summary">My expenses today: {{ $todayCount }} · TZS {{ formatAmount($todayTotal) }}</div>
                     <button type="submit" class="btn btn-primary w-100 pos-btn-xl js-save" disabled>Save expense</button>
                 </div>
             </form>
-        </div>
-
-        <div class="col-lg-4 mb-4 pos-today-col">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">My expenses today</h5>
-                </div>
-                <div class="card-body">
-                    <div class="pos-today-summary mb-2">{{ $todayCount }} {{ Str::plural('expense', $todayCount) }} · TZS {{ formatAmount($todayTotal) }}</div>
-                    @forelse ($todayExpenses as $expense)
-                        <div class="pos-today-row">
-                            <div class="pos-today-main">
-                                <div class="pos-today-name">{{ $expense->expense_description ?: '—' }}</div>
-                                <div class="pos-muted small">{{ $toLocalTime($expense->created_at)->format('H:i') }} · {{ $expense->category->name ?? '—' }}</div>
-                            </div>
-                            <div class="pos-today-amount">{{ formatAmount($expense->amount) }}</div>
-                        </div>
-                    @empty
-                        <p class="pos-muted mb-0">No expenses yet today.</p>
-                    @endforelse
-
-                    @canany(['View Expense Management', 'View Expenses', 'Edit Expenses'])
-                        <div class="pt-3">
-                            <a href="{{ route('expense.index') }}" class="staff-view-all">Expense history</a>
-                        </div>
-                    @endcanany
-                </div>
-            </div>
         </div>
     </div>
 </div>

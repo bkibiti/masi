@@ -1,7 +1,7 @@
 {{-- Member fields, shared by the "New member" and "Edit member" modals. $member is null when adding. --}}
 @php
     // Only refill from old() when this form was the one submitted (the page has other forms too).
-    $formId = $member ? 'edit-member' : 'create-member';
+    $formId = $modalId ?? ($member ? 'edit-member' : 'create-member');
     $useOld = old('_modal') === $formId;
     $val = fn (string $key, $default = null) => $useOld ? old($key, $default) : $default;
 @endphp

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
+use App\Services\ContributionLedger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,9 +18,14 @@ class MemberController extends Controller
         return view('members.index', compact('members'));
     }
 
-    public function show(Member $member): View
+    public function show(Request $request, Member $member, ContributionLedger $ledger): View
     {
-        return view('members.show', compact('member'));
+        $year = (int) $request->query('year', now()->year);
+        $statement = $ledger->statementForMember($member, $year);
+        $payments = $member->payments()->with('recorder')->latest('paid_on')->latest('id')->get();
+        $years = range(now()->year - 2, now()->year + 1);
+
+        return view('members.show', compact('member', 'statement', 'year', 'years', 'payments'));
     }
 
     public function store(Request $request): RedirectResponse
