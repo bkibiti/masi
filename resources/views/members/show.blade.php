@@ -98,6 +98,7 @@
                                                         data-action="{{ route('contributions.payments.update', $payment) }}"
                                                         data-member-id="{{ $payment->member_id }}" data-member-name="{{ $member->name }}"
                                                         data-payment-type-id="{{ $payment->payment_type_id }}" data-payment-method-id="{{ $payment->payment_method_id }}"
+                                                        data-loan-id="{{ $payment->loan_id }}"
                                                         data-amount="{{ $payment->amount }}" data-paid-on="{{ $payment->paid_on->toDateString() }}"
                                                         data-reference="{{ $payment->reference }}" data-notes="{{ $payment->notes }}">Edit</button>
                                                     <form method="POST" action="{{ route('contributions.payments.destroy', $payment) }}" class="d-inline"
@@ -116,6 +117,57 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endcan
+
+{{-- Loans --}}
+@can('View Loans')
+    <div class="col-lg-12">
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title">Loans</h3></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Loan type</th><th class="text-end">Amount</th><th>Status</th><th class="text-end">Outstanding</th><th></th></tr></thead>
+                        <tbody>
+                            @forelse ($loans as $loan)
+                                <tr>
+                                    <td>{{ $loan->loanType->name }}</td>
+                                    <td class="text-end">{{ formatAmount($loan->effectiveAmount()) }}</td>
+                                    <td>{{ ucfirst(str_replace('_', ' ', $loan->status)) }}</td>
+                                    <td class="text-end">{{ formatAmount($loan->outstandingBalance()) }}</td>
+                                    <td class="text-end"><a href="{{ route('loans.show', $loan) }}" class="btn btn-outline-primary btn-sm">View</a></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5" class="text-muted p-3">No loans.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title">Guarantees given</h3></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Borrower</th><th class="text-end">Guaranteed</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            @forelse ($guarantees as $guarantee)
+                                <tr>
+                                    <td>{{ $guarantee->loan->member->name }}</td>
+                                    <td class="text-end">{{ formatAmount($guarantee->guaranteed_amount) }}</td>
+                                    <td>{{ ucfirst($guarantee->status) }}</td>
+                                    <td class="text-end"><a href="{{ route('loans.show', $guarantee->loan) }}" class="btn btn-outline-primary btn-sm">View</a></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-muted p-3">No guarantees given.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

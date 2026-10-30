@@ -24,8 +24,10 @@ class MemberController extends Controller
         $statement = $ledger->statementForMember($member, $year);
         $payments = $member->payments()->with(['recorder', 'paymentType', 'paymentMethod'])->latest('paid_on')->latest('id')->get();
         $years = range(now()->year - 2, now()->year + 1);
+        $loans = $member->loans()->with('loanType')->get();
+        $guarantees = $member->guarantees()->with('loan.member')->get();
 
-        return view('members.show', compact('member', 'statement', 'year', 'years', 'payments'));
+        return view('members.show', compact('member', 'statement', 'year', 'years', 'payments', 'loans', 'guarantees'));
     }
 
     public function store(Request $request): RedirectResponse

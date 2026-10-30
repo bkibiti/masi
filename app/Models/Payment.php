@@ -14,7 +14,7 @@ class Payment extends Model
 
     protected $table = 'payments';
 
-    protected $fillable = ['member_id', 'payment_method_id', 'payment_type_id', 'amount', 'paid_on', 'reference', 'notes', 'recorded_by'];
+    protected $fillable = ['member_id', 'payment_method_id', 'payment_type_id', 'loan_id', 'amount', 'paid_on', 'reference', 'notes', 'recorded_by'];
 
     protected function casts(): array
     {
@@ -39,6 +39,11 @@ class Payment extends Model
         return $this->belongsTo(PaymentType::class);
     }
 
+    public function loan(): BelongsTo
+    {
+        return $this->belongsTo(Loan::class);
+    }
+
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
@@ -50,10 +55,22 @@ class Payment extends Model
     }
 
     /**
-     * Payments whose type actually feeds the contribution ledger (excludes "none", e.g. loan repayments).
+     * Payments whose type actually feeds the contribution ledger (monthly_fee/penalty only;
+     * excludes "none" and "loan" payments, e.g. loan repayments).
      */
     public function scopeLedgerRelevant(Builder $query): Builder
     {
-        return $query->whereHas('paymentType', fn ($q) => $q->where('ledger_role', '!=', PaymentType::ROLE_NONE));
+        return $query->whereHas('paymentType', fn ($q) => $q->whereIn('ledger_role', [
+            PaymentType::ROLE_MONTHLY_FEE,
+            PaymentType::ROLE_PENALTY,
+        ]));
+    }
+
+    /**
+     * Payments whose type feeds LoanLedger (ledger_role=loan).
+     */
+    public function scopeLoanRelevant(Builder $query): Builder
+    {
+        return $query->whereHas('paymentType', fn ($q) => $q->where('ledger_role', PaymentType::ROLE_LOAN));
     }
 }

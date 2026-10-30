@@ -2,8 +2,9 @@
     $membersActive = request()->routeIs('members.*');
     $expensesActive = request()->routeIs('expense.*');
     $usersActive = request()->routeIs('roles.*', 'users.*');
-    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*', 'contribution-settings.*', 'payment-methods.*', 'payment-types.*');
+    $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*', 'contribution-settings.*', 'payment-methods.*', 'payment-types.*', 'loan-types.*');
     $contributionsActive = request()->routeIs('contributions.*');
+    $loansActive = request()->routeIs('loans.*');
 @endphp
 
 <li class="nav-item">
@@ -46,6 +47,15 @@
         </ul>
     </li>
 @endcanany
+
+@can('View Loans')
+    <li class="nav-item">
+        <a href="{{ route('loans.index') }}" class="nav-link {{ $loansActive ? 'active' : '' }}">
+            <i class="nav-icon bi bi-cash-coin"></i>
+            <p>Loans</p>
+        </a>
+    </li>
+@endcan
 
 @canany(['View Expense Management', 'View Expenses', 'Add Expenses', 'Edit Expenses'])
     <li class="nav-item {{ $expensesActive ? 'menu-open' : '' }}">
@@ -110,7 +120,7 @@
     </li>
 @endcanany
 
-@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings', 'View Payment Methods', 'View Payment Types'])
+@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings', 'View Payment Methods', 'View Payment Types', 'View Loan Types'])
     <li class="nav-item {{ $mastersActive ? 'menu-open' : '' }}">
         <a href="#" class="nav-link {{ $mastersActive ? 'active' : '' }}">
             <i class="nav-icon bi bi-list-ul"></i>
@@ -138,6 +148,14 @@
                     <a href="{{ route('payment-types.index') }}" class="nav-link {{ request()->routeIs('payment-types.*') ? 'active' : '' }}">
                         <i class="nav-icon bi bi-circle"></i>
                         <p>Payment Types</p>
+                    </a>
+                </li>
+            @endcan
+            @can('View Loan Types')
+                <li class="nav-item">
+                    <a href="{{ route('loan-types.index') }}" class="nav-link {{ request()->routeIs('loan-types.*') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Loan Types</p>
                     </a>
                 </li>
             @endcan

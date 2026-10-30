@@ -6,6 +6,8 @@ use App\Http\Controllers\ContributionSettingController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LoanController;
+use App\Http\Controllers\LoanTypeController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymentMethodController;
@@ -50,6 +52,27 @@ Route::middleware(['auth'])->group(function () {
     Route::post('masters/payment-types', [PaymentTypeController::class, 'store'])->name('payment-types.store')->middleware('can:Manage Payment Types');
     Route::put('masters/payment-types/{paymentType}', [PaymentTypeController::class, 'update'])->name('payment-types.update')->middleware('can:Manage Payment Types');
     Route::delete('masters/payment-types/{paymentType}', [PaymentTypeController::class, 'destroy'])->name('payment-types.destroy')->middleware('can:Manage Payment Types');
+
+    // Loan types (Masters)
+    Route::get('masters/loan-types', [LoanTypeController::class, 'index'])->name('loan-types.index')->middleware('can:View Loan Types');
+    Route::post('masters/loan-types', [LoanTypeController::class, 'store'])->name('loan-types.store')->middleware('can:Manage Loan Types');
+    Route::put('masters/loan-types/{loanType}', [LoanTypeController::class, 'update'])->name('loan-types.update')->middleware('can:Manage Loan Types');
+    Route::delete('masters/loan-types/{loanType}', [LoanTypeController::class, 'destroy'])->name('loan-types.destroy')->middleware('can:Manage Loan Types');
+    Route::get('masters/loan-types/preview', [LoanTypeController::class, 'preview'])->name('loan-types.preview')->middleware('can:View Loan Types');
+
+    // Loans
+    Route::get('loans', [LoanController::class, 'index'])->name('loans.index')->middleware('can:View Loans');
+    Route::get('loans/create', [LoanController::class, 'create'])->name('loans.create')->middleware('can:Manage Loans');
+    Route::post('loans', [LoanController::class, 'store'])->name('loans.store')->middleware('can:Manage Loans');
+    Route::get('loans/preview', [LoanController::class, 'preview'])->name('loans.preview')->middleware('can:Manage Loans');
+    Route::get('loans/{loan}', [LoanController::class, 'show'])->name('loans.show')->middleware('can:View Loans');
+    Route::post('loans/{loan}/guarantors', [LoanController::class, 'storeGuarantor'])->name('loans.guarantors.store')->middleware('can:Manage Loans');
+    Route::delete('loans/{loan}/guarantors/{guarantor}', [LoanController::class, 'destroyGuarantor'])->name('loans.guarantors.destroy')->middleware('can:Manage Loans');
+    Route::post('loans/{loan}/guarantors/{guarantor}/respond', [LoanController::class, 'respondGuarantor'])->name('loans.guarantors.respond')->middleware('can:Manage Loans');
+    Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve')->middleware('can:Approve Loans');
+    Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject')->middleware('can:Approve Loans');
+    Route::post('loans/{loan}/cancel', [LoanController::class, 'cancel'])->name('loans.cancel')->middleware('can:Manage Loans');
+    Route::post('loans/{loan}/disburse', [LoanController::class, 'disburse'])->name('loans.disburse')->middleware('can:Disburse Loans');
 
     // Contributions: register + payments
     Route::get('contributions/register', [ContributionController::class, 'register'])->name('contributions.register')->middleware('can:View Contributions');

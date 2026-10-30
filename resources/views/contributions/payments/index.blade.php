@@ -90,6 +90,7 @@
                                             data-action="{{ route('contributions.payments.update', $payment) }}"
                                             data-member-id="{{ $payment->member_id }}"
                                             data-payment-type-id="{{ $payment->payment_type_id }}" data-payment-method-id="{{ $payment->payment_method_id }}"
+                                            data-loan-id="{{ $payment->loan_id }}"
                                             data-amount="{{ $payment->amount }}" data-paid-on="{{ $payment->paid_on->toDateString() }}"
                                             data-reference="{{ $payment->reference }}" data-notes="{{ $payment->notes }}">Edit</button>
                                         <form method="POST" action="{{ route('contributions.payments.destroy', $payment) }}" class="d-inline"

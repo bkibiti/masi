@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Loan;
 use App\Models\Member;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\PaymentType;
 use App\Services\ContributionLedger;
+use App\Services\LoanLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PaymentController extends Controller
@@ -59,28 +62,48 @@ class PaymentController extends Controller
         $member = Member::findOrFail($data['member_id']);
         $paymentType = PaymentType::findOrFail($data['payment_type_id']);
 
+        if ($paymentType->isLoan()) {
+            $loans = $member->loans()
+                ->whereIn('status', [Loan::STATUS_DISBURSED, Loan::STATUS_COMPLETED])
+                ->with('loanType')
+                ->get()
+                ->map(fn (Loan $loan) => [
+                    'id' => $loan->id,
+                    'label' => $loan->loanType->name.' — TZS '.number_format($loan->effectiveAmount()).' ('.($loan->status === Loan::STATUS_DISBURSED ? 'active' : 'completed').')',
+                    'outstanding' => $loan->outstandingBalance(),
+                    'active' => $loan->status === Loan::STATUS_DISBURSED,
+                ])
+                ->values();
+
+            return response()->json(['ledger_role' => $paymentType->ledger_role, 'arrears' => [], 'allocation' => [], 'credit_after' => null, 'loans' => $loans]);
+        }
+
         if (! $paymentType->isLedgerRelevant()) {
-            return response()->json(['ledger_role' => $paymentType->ledger_role, 'arrears' => [], 'allocation' => [], 'credit_after' => null]);
+            return response()->json(['ledger_role' => $paymentType->ledger_role, 'arrears' => [], 'allocation' => [], 'credit_after' => null, 'loans' => []]);
         }
 
         $preview = $paymentType->isPenalty()
             ? $ledger->previewPenaltyAllocation($member, (float) $data['amount'])
             : $ledger->previewAllocation($member, (float) $data['amount']);
 
-        return response()->json([...$preview, 'ledger_role' => $paymentType->ledger_role]);
+        return response()->json([...$preview, 'ledger_role' => $paymentType->ledger_role, 'loans' => []]);
     }
 
-    public function store(Request $request, ContributionLedger $ledger): RedirectResponse
+    public function store(Request $request, ContributionLedger $ledger, LoanLedger $loanLedger): RedirectResponse
     {
         $data = $this->validated($request);
 
-        DB::transaction(function () use ($data, $ledger) {
+        DB::transaction(function () use ($data, $ledger, $loanLedger) {
             $payment = Payment::create([
                 ...$data,
                 'recorded_by' => auth()->id(),
             ]);
 
             $ledger->rebuildForMember($payment->member);
+
+            if ($payment->loan_id) {
+                $loanLedger->rebuildForLoan($payment->loan);
+            }
         });
 
         session()->flash('alert-success', 'Payment recorded.');
@@ -88,13 +111,18 @@ class PaymentController extends Controller
         return redirect()->route('contributions.payments.index');
     }
 
-    public function update(Request $request, Payment $payment, ContributionLedger $ledger): RedirectResponse
+    public function update(Request $request, Payment $payment, ContributionLedger $ledger, LoanLedger $loanLedger): RedirectResponse
     {
         $data = $this->validated($request, $payment);
+        $previousLoanId = $payment->loan_id;
 
-        DB::transaction(function () use ($data, $payment, $ledger) {
+        DB::transaction(function () use ($data, $payment, $ledger, $loanLedger, $previousLoanId) {
             $payment->update($data);
             $ledger->rebuildForMember($payment->member);
+
+            foreach (array_unique(array_filter([$previousLoanId, $payment->loan_id])) as $loanId) {
+                $loanLedger->rebuildForLoan(Loan::find($loanId));
+            }
         });
 
         session()->flash('alert-success', 'Payment updated.');
@@ -102,12 +130,17 @@ class PaymentController extends Controller
         return back();
     }
 
-    public function destroy(Payment $payment, ContributionLedger $ledger): RedirectResponse
+    public function destroy(Payment $payment, ContributionLedger $ledger, LoanLedger $loanLedger): RedirectResponse
     {
-        DB::transaction(function () use ($payment, $ledger) {
+        DB::transaction(function () use ($payment, $ledger, $loanLedger) {
             $member = $payment->member;
+            $loanId = $payment->loan_id;
             $payment->delete();
             $ledger->rebuildForMember($member);
+
+            if ($loanId) {
+                $loanLedger->rebuildForLoan(Loan::find($loanId));
+            }
         });
 
         session()->flash('alert-success', 'Payment deleted.');
@@ -120,7 +153,7 @@ class PaymentController extends Controller
      */
     private function validated(Request $request, ?Payment $payment = null): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'member_id' => 'required|exists:members,id',
             'payment_method_id' => 'required|exists:payment_methods,id',
             'payment_type_id' => 'required|exists:payment_types,id',
@@ -129,5 +162,32 @@ class PaymentController extends Controller
             'reference' => 'nullable|string|max:150',
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        $paymentType = PaymentType::findOrFail($data['payment_type_id']);
+        $data['loan_id'] = null;
+
+        if ($paymentType->isLoan()) {
+            abort_if(! $request->user()->can('Record Loan Repayments'), 403);
+
+            $loanData = $request->validate([
+                'loan_id' => 'required|exists:loans,id',
+            ]);
+
+            $loan = Loan::findOrFail($loanData['loan_id']);
+
+            if ((int) $loan->member_id !== (int) $data['member_id']) {
+                throw ValidationException::withMessages(['loan_id' => 'This loan does not belong to the selected member.']);
+            }
+
+            if (! in_array($loan->status, [Loan::STATUS_DISBURSED, Loan::STATUS_COMPLETED], true)) {
+                throw ValidationException::withMessages(['loan_id' => 'This loan has not been disbursed yet.']);
+            }
+
+            app(LoanLedger::class)->validateNewPaymentAmount($loan, (float) $data['amount'], $payment);
+
+            $data['loan_id'] = $loan->id;
+        }
+
+        return $data;
     }
 }

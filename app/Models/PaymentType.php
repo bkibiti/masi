@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * What a payment is for, and how the contribution ledger should treat it:
- *   - monthly_fee: replayed into the ledger, contribution settings apply.
- *   - penalty: pays outstanding penalties only, oldest first.
- *   - none: recorded only, never touches the ledger (e.g. loan repayment).
+ * What a payment is for, and how it should be treated:
+ *   - monthly_fee: replayed into the contribution ledger, contribution settings apply.
+ *   - penalty: pays outstanding contribution penalties only, oldest first.
+ *   - loan: replayed into LoanLedger against the member's loan, never the contribution ledger.
+ *   - none: recorded only, touches no ledger.
  *
  * The seeded "Monthly Fee" and "Fines / Penalties" types are system types: their name
  * can change, but they cannot be deleted and their ledger_role cannot change. A type
@@ -21,10 +22,12 @@ class PaymentType extends Model
 
     public const ROLE_PENALTY = 'penalty';
 
+    public const ROLE_LOAN = 'loan';
+
     public const ROLE_NONE = 'none';
 
     /** @var array<int, string> */
-    public const LEDGER_ROLES = [self::ROLE_MONTHLY_FEE, self::ROLE_PENALTY, self::ROLE_NONE];
+    public const LEDGER_ROLES = [self::ROLE_MONTHLY_FEE, self::ROLE_PENALTY, self::ROLE_LOAN, self::ROLE_NONE];
 
     protected $table = 'payment_types';
 
@@ -58,8 +61,17 @@ class PaymentType extends Model
         return $this->ledger_role === self::ROLE_PENALTY;
     }
 
+    public function isLoan(): bool
+    {
+        return $this->ledger_role === self::ROLE_LOAN;
+    }
+
+    /**
+     * Whether this type feeds the contribution ledger. Deliberately a whitelist (not
+     * "!= none") so a new role, such as "loan", never silently flows into it.
+     */
     public function isLedgerRelevant(): bool
     {
-        return $this->ledger_role !== self::ROLE_NONE;
+        return in_array($this->ledger_role, [self::ROLE_MONTHLY_FEE, self::ROLE_PENALTY], true);
     }
 }

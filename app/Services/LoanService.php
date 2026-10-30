@@ -1,0 +1,293 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Loan;
+use App\Models\LoanGuarantor;
+use App\Models\LoanStatusHistory;
+use App\Models\LoanType;
+use App\Models\Member;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * Orchestrates the loan workflow (rule 3). All calculation is delegated to LoanCalculator
+ * (schedule) and LoanEligibility (guarantor threshold); this class only validates state
+ * transitions, persists them, and records the audit trail.
+ */
+class LoanService
+{
+    public function __construct(
+        private readonly LoanEligibility $eligibility,
+        private readonly LoanCalculator $calculator,
+    ) {}
+
+    /**
+     * @param  array<int, array{guarantor_member_id: int, guaranteed_amount: float}>  $guarantors
+     */
+    public function apply(Member $member, LoanType $loanType, float $amount, int $months, ?string $purpose, array $guarantors, User $actingUser): Loan
+    {
+        if ($this->eligibility->hasActiveLoan($member)) {
+            throw ValidationException::withMessages(['member_id' => 'This member already has an active loan.']);
+        }
+
+        if (! $loanType->is_active) {
+            throw ValidationException::withMessages(['loan_type_id' => 'This loan type is not active.']);
+        }
+
+        if (! $this->eligibility->withinLoanTypeLimits($loanType, $amount, $months)) {
+            throw ValidationException::withMessages([
+                'requested_amount' => "Amount must be between TZS {$loanType->min_amount} and TZS {$loanType->max_amount}, and duration between {$loanType->min_duration_months} and {$loanType->max_duration_months} months.",
+            ]);
+        }
+
+        $summary = $this->eligibility->summary($member, $amount);
+
+        return DB::transaction(function () use ($member, $loanType, $amount, $months, $purpose, $guarantors, $actingUser, $summary) {
+            $status = $summary['guarantors_required'] ? Loan::STATUS_PENDING_GUARANTORS : Loan::STATUS_PENDING_APPROVAL;
+
+            $loan = Loan::create([
+                'member_id' => $member->id,
+                'loan_type_id' => $loanType->id,
+                'requested_amount' => $amount,
+                'requested_duration_months' => $months,
+                'purpose' => $purpose,
+                'interest_method' => $loanType->interest_method,
+                'interest_rate' => $loanType->interest_rate,
+                'penalty_percent' => $loanType->penalty_percent,
+                'status' => $status,
+                'applicant_contributions_total' => $summary['contributions_total'],
+                'required_guarantee_amount' => $summary['required_guarantee_amount'],
+                'applied_by' => $actingUser->id,
+                'applied_at' => now(),
+            ]);
+
+            if ($summary['guarantors_required']) {
+                foreach ($guarantors as $guarantor) {
+                    $this->addGuarantor($loan, (int) $guarantor['guarantor_member_id'], (float) $guarantor['guaranteed_amount']);
+                }
+            }
+
+            $this->recordHistory($loan, null, $status, $actingUser, null);
+
+            return $loan;
+        });
+    }
+
+    public function addGuarantor(Loan $loan, int $guarantorMemberId, float $amount, ?string $notes = null): LoanGuarantor
+    {
+        if ($loan->status !== Loan::STATUS_PENDING_GUARANTORS) {
+            throw ValidationException::withMessages(['guarantor' => 'Guarantors can only be added while this loan is waiting for guarantors.']);
+        }
+
+        if ($guarantorMemberId === $loan->member_id) {
+            throw ValidationException::withMessages(['guarantor' => 'A member cannot guarantee their own loan.']);
+        }
+
+        if ($loan->guarantors()->where('guarantor_member_id', $guarantorMemberId)->exists()) {
+            throw ValidationException::withMessages(['guarantor' => 'This member is already a guarantor on this loan.']);
+        }
+
+        return LoanGuarantor::create([
+            'loan_id' => $loan->id,
+            'guarantor_member_id' => $guarantorMemberId,
+            'guaranteed_amount' => $amount,
+            'status' => LoanGuarantor::STATUS_PENDING,
+            'notes' => $notes,
+        ]);
+    }
+
+    public function removeGuarantor(Loan $loan, LoanGuarantor $guarantor): void
+    {
+        if ($loan->status !== Loan::STATUS_PENDING_GUARANTORS) {
+            throw ValidationException::withMessages(['guarantor' => 'Guarantors can only be changed while this loan is waiting for guarantors.']);
+        }
+
+        $guarantor->delete();
+    }
+
+    /**
+     * Accept or decline a guarantee on the guarantor's behalf (no member portal yet), and
+     * re-evaluate whether the loan can move to/from the Loan Officer.
+     */
+    public function recordGuarantorResponse(LoanGuarantor $guarantor, string $status, ?User $recordedBy, ?string $notes = null): LoanGuarantor
+    {
+        if (! in_array($status, [LoanGuarantor::STATUS_ACCEPTED, LoanGuarantor::STATUS_DECLINED], true)) {
+            throw ValidationException::withMessages(['status' => 'Invalid guarantor response.']);
+        }
+
+        $guarantor->update([
+            'status' => $status,
+            'responded_by' => $recordedBy?->id,
+            'responded_at' => now(),
+            'notes' => $notes,
+        ]);
+
+        $loan = $guarantor->loan;
+
+        if ($loan->status === Loan::STATUS_PENDING_GUARANTORS && $loan->guaranteesCoverRequirement()) {
+            $this->transition($loan, Loan::STATUS_PENDING_APPROVAL, $recordedBy, 'Guarantees now cover the required amount.');
+        } elseif ($loan->status === Loan::STATUS_PENDING_APPROVAL && ! $loan->guaranteesCoverRequirement()) {
+            $this->transition($loan, Loan::STATUS_PENDING_GUARANTORS, $recordedBy, 'A guarantor declined; guarantees no longer cover the required amount.');
+        }
+
+        return $guarantor->refresh();
+    }
+
+    /**
+     * The Loan Officer may approve a lower amount or shorter duration (within the loan type's
+     * current limits); the guarantor requirement is recalculated against the final amount.
+     */
+    public function approve(Loan $loan, User $officer, ?float $approvedAmount = null, ?int $approvedMonths = null): Loan
+    {
+        if ($loan->status !== Loan::STATUS_PENDING_APPROVAL) {
+            throw ValidationException::withMessages(['status' => 'Only a loan pending approval can be approved.']);
+        }
+
+        $finalAmount = $approvedAmount ?? (float) $loan->requested_amount;
+        $finalMonths = $approvedMonths ?? $loan->requested_duration_months;
+
+        if ($finalAmount > (float) $loan->requested_amount || $finalMonths > $loan->requested_duration_months) {
+            throw ValidationException::withMessages(['approved_amount' => 'The approved amount/duration cannot exceed what was requested.']);
+        }
+
+        $loanType = $loan->loanType;
+        if (! $this->eligibility->withinLoanTypeLimits($loanType, $finalAmount, $finalMonths)) {
+            throw ValidationException::withMessages(['approved_amount' => "Amount must be between TZS {$loanType->min_amount} and TZS {$loanType->max_amount}, and duration between {$loanType->min_duration_months} and {$loanType->max_duration_months} months."]);
+        }
+
+        $requiredGuarantee = $this->eligibility->requiredGuarantee($loan->member, $finalAmount);
+
+        return DB::transaction(function () use ($loan, $finalAmount, $finalMonths, $requiredGuarantee, $officer) {
+            $loan->update(['required_guarantee_amount' => $requiredGuarantee]);
+
+            if ($requiredGuarantee > 0 && ! $loan->guaranteesCoverRequirement()) {
+                throw ValidationException::withMessages(['approved_amount' => 'Accepted guarantees no longer cover the required amount for this approval.']);
+            }
+
+            $loan->update([
+                'approved_amount' => $finalAmount,
+                'approved_duration_months' => $finalMonths,
+                'status' => Loan::STATUS_APPROVED,
+                'approved_by' => $officer->id,
+                'approved_at' => now(),
+            ]);
+
+            $this->recordHistory($loan, Loan::STATUS_PENDING_APPROVAL, Loan::STATUS_APPROVED, $officer, null);
+
+            return $loan;
+        });
+    }
+
+    public function reject(Loan $loan, User $officer, string $reason): Loan
+    {
+        if ($loan->status !== Loan::STATUS_PENDING_APPROVAL) {
+            throw ValidationException::withMessages(['status' => 'Only a loan pending approval can be rejected.']);
+        }
+
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages(['rejection_reason' => 'A comment is required to reject a loan.']);
+        }
+
+        $fromStatus = $loan->status;
+
+        $loan->update([
+            'status' => Loan::STATUS_REJECTED,
+            'rejected_by' => $officer->id,
+            'rejected_at' => now(),
+            'rejection_reason' => $reason,
+        ]);
+
+        $this->recordHistory($loan, $fromStatus, Loan::STATUS_REJECTED, $officer, $reason);
+
+        return $loan;
+    }
+
+    public function cancel(Loan $loan, ?User $actingUser, ?string $reason = null): Loan
+    {
+        if (! in_array($loan->status, [Loan::STATUS_PENDING_GUARANTORS, Loan::STATUS_PENDING_APPROVAL], true)) {
+            throw ValidationException::withMessages(['status' => 'A loan can only be cancelled before it is approved.']);
+        }
+
+        $fromStatus = $loan->status;
+
+        $loan->update([
+            'status' => Loan::STATUS_CANCELLED,
+            'cancelled_by' => $actingUser?->id,
+            'cancelled_at' => now(),
+        ]);
+
+        $this->recordHistory($loan, $fromStatus, Loan::STATUS_CANCELLED, $actingUser, $reason);
+
+        return $loan;
+    }
+
+    /**
+     * Releases the funds: records how/when, and creates the repayment schedule. The schedule
+     * generation and the loan's status flip happen in one transaction (instruction: use DB
+     * transactions for disbursement).
+     */
+    public function disburse(Loan $loan, User $treasurer, string $disbursedOn, int $paymentMethodId, ?string $reference, ?string $notes): Loan
+    {
+        if ($loan->status !== Loan::STATUS_APPROVED) {
+            throw ValidationException::withMessages(['status' => 'Only an approved loan can be disbursed.']);
+        }
+
+        return DB::transaction(function () use ($loan, $treasurer, $disbursedOn, $paymentMethodId, $reference, $notes) {
+            $disbursedOnDate = CarbonImmutable::parse($disbursedOn);
+
+            $rows = $this->calculator->installments(
+                $loan->effectiveAmount(),
+                (float) $loan->interest_rate,
+                $loan->effectiveDurationMonths(),
+                $loan->interest_method,
+                $disbursedOnDate,
+            );
+
+            foreach ($rows as $row) {
+                $loan->installments()->create([
+                    'number' => $row['number'],
+                    'due_date' => $row['due_date']->toDateString(),
+                    'principal' => $row['principal'],
+                    'interest' => $row['interest'],
+                    'amount' => $row['amount'],
+                    'amount_paid' => 0,
+                ]);
+            }
+
+            $loan->update([
+                'status' => Loan::STATUS_DISBURSED,
+                'disbursed_by' => $treasurer->id,
+                'disbursed_at' => now(),
+                'disbursed_on' => $disbursedOnDate->toDateString(),
+                'disbursement_payment_method_id' => $paymentMethodId,
+                'disbursement_reference' => $reference,
+                'disbursement_notes' => $notes,
+            ]);
+
+            $this->recordHistory($loan, Loan::STATUS_APPROVED, Loan::STATUS_DISBURSED, $treasurer, null);
+
+            return $loan;
+        });
+    }
+
+    private function transition(Loan $loan, string $toStatus, ?User $actingUser, ?string $note): void
+    {
+        $fromStatus = $loan->status;
+        $loan->update(['status' => $toStatus]);
+        $this->recordHistory($loan, $fromStatus, $toStatus, $actingUser, $note);
+    }
+
+    private function recordHistory(Loan $loan, ?string $fromStatus, string $toStatus, ?User $actingUser, ?string $note): void
+    {
+        LoanStatusHistory::create([
+            'loan_id' => $loan->id,
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'changed_by' => $actingUser?->id,
+            'note' => $note,
+        ]);
+    }
+}

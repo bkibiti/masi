@@ -41,7 +41,7 @@
                                 <td>{{ $m->phone }}</td>
                                 <td>{{ $m->email }}</td>
                                 <td style="white-space: nowrap">
-                                    <a href="{{ route('members.show', $m) }}" class="btn btn-info btn-sm">Open</a>
+                                    <a href="{{ route('members.show', $m) }}" class="btn btn-info btn-sm">View</a>
                                     @can('Manage Members')
                                         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#edit-member-{{ $m->id }}">
                                             <i class="bi bi-pencil"></i> Edit

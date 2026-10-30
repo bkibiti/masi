@@ -48,6 +48,12 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-6 payment-loan-field d-none">
+                        <label class="form-label">Loan <span class="text-danger">*</span></label>
+                        <select name="loan_id" class="form-select payment-loan-id">
+                            <option value="">Select loan</option>
+                        </select>
+                    </div>
                     <div class="col-md-6">
                         <label class="form-label">Payment method <span class="text-danger">*</span></label>
                         <select name="payment_method_id" class="form-select payment-method-id" required>
@@ -94,7 +100,41 @@
                     return Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 });
                 }
 
-                function renderPreview($container, data) {
+                function renderLoanOptions($form, data) {
+                    var $select = $form.find('.payment-loan-id');
+                    var pending = $form.data('pendingLoanId') || '';
+                    $form.data('pendingLoanId', '');
+
+                    var options = '<option value="">Select loan</option>' + data.loans.map(function (loan) {
+                        return '<option value="' + loan.id + '"' + (! loan.active ? ' disabled' : '') + '>'
+                            + loan.label + ' — balance TZS ' + formatTzs(loan.outstanding) + '</option>';
+                    }).join('');
+                    $select.html(options);
+
+                    if (pending) {
+                        $select.val(String(pending));
+                    } else {
+                        var active = data.loans.find(function (loan) { return loan.active; });
+                        if (data.loans.length === 1 || active) {
+                            $select.val(String((active || data.loans[0]).id));
+                        }
+                    }
+                }
+
+                function renderPreview($form, $container, data) {
+                    if (data.ledger_role === 'loan') {
+                        $form.find('.payment-loan-field').removeClass('d-none');
+                        $form.find('.payment-loan-id').prop('required', true);
+                        renderLoanOptions($form, data);
+                        $container.html(data.loans.length
+                            ? '<span class="text-muted">Loan repayment: unpaid penalties, then oldest installments, are paid first.</span>'
+                            : '<span class="text-danger">This member has no disbursed loan to repay.</span>');
+                        return;
+                    }
+
+                    $form.find('.payment-loan-field').addClass('d-none');
+                    $form.find('.payment-loan-id').prop('required', false).val('');
+
                     if (data.ledger_role === 'none') {
                         $container.html('<span class="text-muted">This payment type is recorded only; it does not affect the contribution ledger.</span>');
                         return;
@@ -137,7 +177,7 @@
 
                     $.getJSON(@json(route('contributions.payments.preview')), { member_id: memberId, amount: amount, payment_type_id: paymentTypeId })
                         .done(function (data) {
-                            renderPreview($preview, data);
+                            renderPreview($form, $preview, data);
                         })
                         .fail(function () {
                             $preview.text('Could not load the preview.');
@@ -165,6 +205,7 @@
                     $form.find('[name=paid_on]').val(b.data('paidOn'));
                     $form.find('[name=reference]').val(b.data('reference'));
                     $form.find('[name=notes]').val(b.data('notes'));
+                    $form.data('pendingLoanId', b.data('loanId') || '');
                     updatePreview($form);
                 });
 

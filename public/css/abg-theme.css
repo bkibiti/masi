@@ -1552,3 +1552,46 @@ table.dataTable tbody tr:hover {
     background-color: var(--abg-gold) !important;
     color: #FFFFFF !important;
 }
+
+/* ---------- Tabs (e.g. member Statement / Payment history): bold, clear active state ---------- */
+.nav-tabs {
+    gap: 4px;
+    border-bottom: 1px solid var(--abg-border);
+}
+
+.nav-tabs .nav-link {
+    font-size: 16px;
+    font-weight: 600;
+    color: #3E4A5E;
+    background-color: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    padding: 12px 18px 10px;
+    margin-bottom: -1px;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus-visible {
+    color: var(--abg-black);
+    background-color: #EEF0F6;
+    border-bottom-color: #CDD2DD;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+    color: var(--abg-black);
+    font-weight: 700;
+    background-color: transparent;
+    border-bottom-color: var(--masi-orange);
+}
+
+.card-header:has(> .card-header-tabs) {
+    background-color: #FFFFFF;
+    padding-bottom: 0;
+}
+
+/* Space between the tabs and the tab content, so the active underline isn't hidden by a table header */
+.card:has(> .card-header > .card-header-tabs) .tab-content {
+    padding-top: 12px;
+}

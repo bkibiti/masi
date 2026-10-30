@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\LoanType;
+use App\Services\LoanCalculator;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+class LoanTypeController extends Controller
+{
+    public function index(): View
+    {
+        $loanTypes = LoanType::orderBy('name')->get();
+
+        return view('masters.loan_types.index', compact('loanTypes'));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $this->validated($request);
+
+        LoanType::create($data);
+
+        session()->flash('alert-success', 'Loan type added.');
+
+        return back();
+    }
+
+    public function update(Request $request, LoanType $loanType): RedirectResponse
+    {
+        $data = $this->validated($request, $loanType);
+
+        $loanType->update($data);
+
+        session()->flash('alert-success', 'Loan type updated.');
+
+        return back();
+    }
+
+    public function destroy(LoanType $loanType): RedirectResponse
+    {
+        if ($loanType->isInUse()) {
+            session()->flash('alert-danger', 'This loan type has been used on a loan and cannot be deleted. Deactivate it instead.');
+
+            return back();
+        }
+
+        $loanType->delete();
+
+        session()->flash('alert-success', 'Loan type deleted.');
+
+        return back();
+    }
+
+    /**
+     * Example calculation preview for the create/edit form (e.g. 1,000,000 over the max duration).
+     */
+    public function preview(Request $request, LoanCalculator $calculator): JsonResponse
+    {
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'interest_rate' => 'required|numeric|min:0',
+            'duration_months' => 'required|integer|min:1',
+            'interest_method' => ['required', Rule::in(LoanType::INTEREST_METHODS)],
+        ]);
+
+        $rows = $calculator->installments(
+            (float) $data['amount'],
+            (float) $data['interest_rate'],
+            (int) $data['duration_months'],
+            $data['interest_method'],
+            CarbonImmutable::now(),
+        );
+
+        return response()->json([
+            'installments' => array_map(fn ($row) => [
+                'number' => $row['number'],
+                'due_date' => $row['due_date']->toDateString(),
+                'principal' => (float) $row['principal'],
+                'interest' => (float) $row['interest'],
+                'amount' => (float) $row['amount'],
+            ], $rows),
+            'total_interest' => array_sum(array_column($rows, 'interest')),
+            'total_payable' => array_sum(array_column($rows, 'amount')),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validated(Request $request, ?LoanType $loanType = null): array
+    {
+        $locked = $loanType?->isInUse() ?? false;
+
+        // Changing a loan type never changes existing loans, so its terms are locked once it
+        // has been used (the form disables and never submits them); only name/description/
+        // active state can still change.
+        $termRules = $locked ? ['sometimes'] : ['required'];
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150', Rule::unique('loan_types', 'name')->ignore($loanType?->id)],
+            'description' => 'nullable|string|max:255',
+            'interest_method' => [...$termRules, Rule::in(LoanType::INTEREST_METHODS)],
+            'interest_rate' => [...$termRules, 'numeric', 'min:0', 'max:100'],
+            'min_amount' => [...$termRules, 'numeric', 'min:0'],
+            'max_amount' => [...$termRules, 'numeric', 'gte:min_amount'],
+            'min_duration_months' => [...$termRules, 'integer', 'min:1'],
+            'max_duration_months' => [...$termRules, 'integer', 'gte:min_duration_months'],
+            'penalty_percent' => [...$termRules, 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($locked) {
+            $data['interest_method'] = $loanType->interest_method;
+            $data['interest_rate'] = $loanType->interest_rate;
+            $data['min_amount'] = $loanType->min_amount;
+            $data['max_amount'] = $loanType->max_amount;
+            $data['min_duration_months'] = $loanType->min_duration_months;
+            $data['max_duration_months'] = $loanType->max_duration_months;
+            $data['penalty_percent'] = $loanType->penalty_percent;
+        }
+
+        return $data;
+    }
+}
