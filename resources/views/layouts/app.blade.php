@@ -1,8 +1,7 @@
 @php
     $businessName = getSettings('business_name');
     $businessName = $businessName === 'NA' || blank($businessName) ? config('app.name') : $businessName;
-    $logo = getSettings('logo');
-    $logoUrl = $logo !== 'NA' && filled($logo) && file_exists(public_path('logo/'.$logo)) ? asset('logo/'.$logo) : null;
+    $logoUrl = groupLogoUrl();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -13,6 +12,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $businessName }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ filemtime(public_path('favicon-32x32.png')) }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}?v={{ filemtime(public_path('favicon-16x16.png')) }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -22,7 +23,7 @@
         <div class="login-logo">
             <a href="{{ url('/') }}">
                 @if ($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="{{ $businessName }}" class="d-block mx-auto mb-2">
+                    <img src="{{ $logoUrl }}" alt="{{ $businessName }}" class="d-block mx-auto mb-2" style="width: 200px; height: auto;">
                 @endif
                 <b>{{ $businessName }}</b>
             </a>

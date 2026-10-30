@@ -37,13 +37,40 @@ function groupName(): string
 }
 
 /**
- * Public URL of the uploaded logo, or null when there is none.
+ * Public URL of the group logo: the bundled MASI logo, or the one uploaded under Settings if
+ * the bundled file is missing.
  */
 function groupLogoUrl(): ?string
 {
+    if (file_exists(public_path('images/masi-logo.png'))) {
+        return asset('images/masi-logo.png').'?v='.filemtime(public_path('images/masi-logo.png'));
+    }
+
     $logo = getSettings('logo');
 
     return $logo !== 'NA' && filled($logo) && file_exists(public_path('logo/'.$logo)) ? asset('logo/'.$logo) : null;
+}
+
+/**
+ * Absolute file path of the group logo, for PDFs.
+ */
+function groupLogoPath(): ?string
+{
+    if (file_exists(public_path('images/masi-logo.png'))) {
+        return public_path('images/masi-logo.png');
+    }
+
+    $logo = getSettings('logo');
+
+    return $logo !== 'NA' && filled($logo) && file_exists(public_path('logo/'.$logo)) ? public_path('logo/'.$logo) : null;
+}
+
+/**
+ * White version of the MASI logo, for dark backgrounds (sidebar, login panel).
+ */
+function groupLogoWhiteUrl(): string
+{
+    return asset('images/masi-logo-white.png').'?v='.@filemtime(public_path('images/masi-logo-white.png'));
 }
 
 /**

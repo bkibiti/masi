@@ -12,6 +12,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ filemtime(public_path('favicon-32x32.png')) }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}?v={{ filemtime(public_path('favicon-16x16.png')) }}">
     @include('partials.pwa_head')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -148,13 +150,12 @@
 
         <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
             <div class="sidebar-brand">
-                <a href="{{ route('home') }}" class="brand-link">
-                    @if ($logoUrl)
-                        {{-- <img src="{{ $logoUrl }}" alt="{{ $businessName }}" class="brand-image opacity-75 shadow"> --}}
-                    @else
-                        <i class="bi bi-people-fill brand-image fs-4 text-warning"></i>
-                    @endif
-                    <span class="brand-text fw-light">{{ $businessName }}</span>
+                <a href="{{ route('home') }}" class="brand-link masi-brand" title="{{ $businessName }}">
+                    {{-- Mark shows when the sidebar is collapsed; full logo when expanded --}}
+                    <img src="{{ asset('images/masi-mark-white.png') }}" alt="" class="brand-image masi-brand__mark">
+                    <span class="brand-text">
+                        <img src="{{ groupLogoWhiteUrl() }}" alt="{{ $businessName }}" class="masi-brand__logo">
+                    </span>
                 </a>
             </div>
             <div class="sidebar-wrapper">

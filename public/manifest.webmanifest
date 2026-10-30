@@ -1,14 +1,14 @@
 {
-    "name": "ABG Metal Works",
-    "short_name": "ABG",
-    "description": "Sales, stock and expenses for ABG Metal Works",
+    "name": "MASI 2002 Group",
+    "short_name": "MASI",
+    "description": "Members, contributions and payments for MASI 2002 Group",
     "id": "/home",
     "start_url": "/home",
     "scope": "/",
     "display": "standalone",
     "orientation": "any",
-    "background_color": "#0B0B0B",
-    "theme_color": "#0B0B0B",
+    "background_color": "#1A2358",
+    "theme_color": "#1A2358",
     "icons": [
         {
             "src": "/icons/icon-192.png",

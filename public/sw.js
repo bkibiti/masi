@@ -8,7 +8,7 @@
  *
  * When you change this file, bump CACHE_VERSION (abg-v2, abg-v3, ...) so phones pick up the update.
  */
-const CACHE_VERSION = 'abg-v1';
+const CACHE_VERSION = 'masi-v1';
 
 const PRECACHE_URLS = [
     '/offline.html',
@@ -16,7 +16,8 @@ const PRECACHE_URLS = [
     '/icons/icon-512.png',
     '/icons/icon-maskable-512.png',
     '/icons/apple-touch-icon.png',
-    '/images/abg-logo.png',
+    '/images/masi-logo-white.png',
+    '/images/masi-mark-white.png',
     '/css/abg-theme.css',
     '/css/login.css',
 ];

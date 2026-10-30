@@ -1,15 +1,15 @@
 /* ABG Metal Works — login page */
 
 :root {
-    --black: #0B0B0B;
-    --gold: #C9A13F;
-    --gold-hover: #B8892B;
-    --gold-dark: #8A6A1E;
+    --black: #1A2358;
+    --gold: #C4512B;
+    --gold-hover: #A63F1B;
+    --gold-dark: #A63F1B;
     --white: #FFFFFF;
-    --panel: #F6F4EF;
-    --border: #D8D4CB;
-    --text: #141414;
-    --muted: #5C5C5C;
+    --panel: #F4F5F8;
+    --border: #CDD2DD;
+    --text: #172036;
+    --muted: #556072;
     --footer: #6E6E6E;
     --error-bg: #FDECEC;
     --error-text: #9B1C1C;
@@ -104,8 +104,9 @@ p {
 
 .login-brand__logo {
     display: block;
-    width: 132px;
-    height: 132px;
+    width: 240px;
+    max-width: 100%;
+    height: auto;
     object-fit: contain;
 }
 
@@ -132,14 +133,14 @@ p {
 
 .login-brand__tagline {
     font-size: 18px;
-    color: #BDBDBD;
+    color: #C3C9DE;
 }
 
 .login-brand__address {
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #9A9A9A;
+    color: #AEB7D4;
 }
 
 /* ---------- Form panel (right) ---------- */
@@ -330,7 +331,7 @@ p {
     font: inherit;
     font-size: 17px;
     font-weight: 700;
-    color: var(--black);
+    color: #FFFFFF;
     background: var(--gold);
     border: 0;
     border-radius: 8px;
@@ -382,15 +383,15 @@ p {
     :root {
         --page-bg: var(--black);
         --title: var(--white);
-        --subtitle: #B5B5B5;
-        --label: #E6E6E6;
-        --input-bg: #1A1A1A;
-        --input-border: #3A3A3A;
+        --subtitle: #C3C9DE;
+        --label: #E4E7F2;
+        --input-bg: #222C66;
+        --input-border: #3D4884;
         --input-text: var(--white);
-        --icon: #B5B5B5;
-        --link: #D9B65C;
+        --icon: #C3C9DE;
+        --link: #F08A62;
         --check: var(--gold);
-        --footer: #8F8F8F;
+        --footer: #AEB7D4;
         --error-bg: #3A1414;
         --error-text: #F5B5B5;
         --error-border: #E57373;
@@ -432,7 +433,7 @@ p {
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        color: #8F8F8F;
+        color: #AEB7D4;
     }
 
     .login-footer {

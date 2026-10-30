@@ -1,18 +1,28 @@
-/* ABG brand theme — layered on top of AdminLTE 4 / Bootstrap 5. Layout only; charts/data use the data colours below. */
+/* MASI brand theme (navy + orange; variable names kept from the ABG base) — layered on top of AdminLTE 4 / Bootstrap 5. Layout only; charts/data use the data colours below. */
 
 :root {
-    --abg-black: #0B0B0B;
-    --abg-gold: #C9A13F;
-    --abg-gold-hover: #B8892B;
-    --abg-gold-dark-text: #8A6A1E;
+    --abg-black: #0E1430;      /* dark MASI navy: sidebar, table headers, dark cards */
 
-    --abg-bg: #F6F4EF;
+    /* Bootstrap primary = MASI navy (badges, links, focus, progress bars) */
+    --bs-primary: #1A2358;
+    --bs-primary-rgb: 26, 35, 88;
+    --bs-link-color: #2A3A8C;
+    --bs-link-color-rgb: 42, 58, 140;
+    --bs-link-hover-color: #1A2358;
+    --bs-link-hover-color-rgb: 26, 35, 88;
+    --abg-gold: #C4512B;       /* MASI orange, darkened so white text passes contrast */
+    --abg-gold-hover: #A63F1B;
+    --abg-gold-dark-text: #A63F1B;
+    --masi-orange: #E0633A;    /* logo orange, for accents and charts */
+    --masi-orange-on-dark: #F08A62;
+
+    --abg-bg: #F4F5F8;
     --abg-card: #FFFFFF;
-    --abg-border: #E7E3D9;
-    --abg-input-border: #D8D4CB;
+    --abg-border: #E2E5EC;
+    --abg-input-border: #CDD2DD;
 
-    --abg-text: #141414;
-    --abg-muted: #5C5C5C;
+    --abg-text: #172036;
+    --abg-muted: #556072;
 
     --abg-sales: #2F6B8A;
     --abg-expense: #E0874E;
@@ -33,7 +43,7 @@
        DashboardService::SERVICE_COLORS in app/Services/DashboardService.php. */
     --abg-svc-bending: #2A9D8F;
     --abg-svc-plasma: #5B6FB5;
-    --abg-svc-pipe: #C9A13F;
+    --abg-svc-pipe: #E0633A;
     --abg-svc-other: #6E6E6E;
 
     /* Dashboard "Expenses by category" bars */
@@ -56,7 +66,7 @@ body,
 }
 
 .app-sidebar .sidebar-brand {
-    border-bottom: 1px solid #262626;
+    border-bottom: 1px solid #232B52;
 }
 
 .app-sidebar .sidebar-brand .brand-text {
@@ -65,7 +75,7 @@ body,
 
 .app-sidebar .nav-sidebar > .nav-item > .nav-link,
 .app-sidebar .sidebar-menu > .nav-item > .nav-link {
-    color: #D6D6D6;
+    color: #D3D8EA;
     font-size: 15px;
     border-radius: 8px;
     min-height: 44px;
@@ -74,13 +84,13 @@ body,
 }
 
 .app-sidebar .nav-link:hover {
-    background-color: #1C1C1C;
+    background-color: #1C2550;
     color: #FFFFFF;
 }
 
 .app-sidebar .nav-link.active {
     background-color: var(--abg-gold);
-    color: var(--abg-black);
+    color: #FFFFFF;
     font-weight: 700;
 }
 
@@ -90,18 +100,18 @@ body,
 }
 
 .app-sidebar .nav-treeview {
-    border-left: 1px solid #262626;
+    border-left: 1px solid #232B52;
     margin-left: 1rem;
 }
 
 .app-sidebar .nav-treeview > .nav-item > .nav-link {
-    color: #BDBDBD;
+    color: #C3C9DE;
     font-size: 14px;
 }
 
 .app-sidebar .nav-treeview > .nav-item > .nav-link.active {
     background-color: var(--abg-gold);
-    color: var(--abg-black);
+    color: #FFFFFF;
     font-weight: 700;
 }
 
@@ -119,7 +129,7 @@ body,
     height: 32px;
     border-radius: 50%;
     background-color: var(--abg-black);
-    color: var(--abg-gold);
+    color: var(--masi-orange-on-dark);
     font-size: 13px;
     font-weight: 700;
     margin-right: 4px;
@@ -149,7 +159,7 @@ body,
 .btn-success {
     background-color: var(--abg-gold);
     border-color: var(--abg-gold);
-    color: var(--abg-black);
+    color: #FFFFFF;
     font-weight: 700;
 }
 
@@ -159,7 +169,7 @@ body,
 .btn-success:focus {
     background-color: var(--abg-gold-hover);
     border-color: var(--abg-gold-hover);
-    color: var(--abg-black);
+    color: #FFFFFF;
 }
 
 .btn-secondary,
@@ -193,7 +203,7 @@ body,
 .form-control:focus,
 .form-select:focus {
     border-color: var(--abg-gold);
-    box-shadow: 0 0 0 3px rgba(201, 161, 63, .22);
+    box-shadow: 0 0 0 3px rgba(196, 81, 43, .22);
 }
 
 /* ---- Tables / DataTables ---- */
@@ -211,12 +221,12 @@ table.dataTable thead > tr > th {
 
 .table tbody tr,
 table.dataTable tbody tr {
-    border-color: #EFEBE2;
+    border-color: #E6E9F0;
 }
 
 .table tbody tr:hover,
 table.dataTable tbody tr:hover {
-    background-color: #FAF8F3;
+    background-color: #F7F8FB;
 }
 
 .dataTables_wrapper .dataTables_filter input,
@@ -307,7 +317,7 @@ table.dataTable tbody tr:hover {
 
 .staff-shortcut-icon-dark {
     background-color: var(--abg-black);
-    color: var(--abg-gold);
+    color: var(--masi-orange-on-dark);
 }
 
 .staff-shortcut-icon-copper {
@@ -322,7 +332,7 @@ table.dataTable tbody tr:hover {
 
 .staff-shortcut-gold .staff-shortcut-title,
 .staff-shortcut-gold .staff-shortcut-subtitle {
-    color: var(--abg-black);
+    color: #FFFFFF;
 }
 
 .staff-shortcut-subtitle {
@@ -388,7 +398,7 @@ table.dataTable tbody tr:hover {
 
 .staff-table tbody td {
     padding: 8px;
-    border-bottom: 1px solid #EFEBE2;
+    border-bottom: 1px solid #E6E9F0;
     font-size: 14px;
 }
 
@@ -590,13 +600,13 @@ table.dataTable tbody tr:hover {
 }
 
 .partnership-share-card .partnership-share-value {
-    color: var(--abg-gold);
+    color: var(--masi-orange-on-dark);
     font-size: 32px;
     font-weight: 700;
 }
 
 .partnership-share-card .partnership-share-sub {
-    color: #CFCFCF;
+    color: #C3C9DE;
     font-size: 13px;
 }
 
@@ -608,7 +618,7 @@ table.dataTable tbody tr:hover {
 }
 
 .payout-cash-card .payout-cash-label {
-    color: #CFCFCF;
+    color: #C3C9DE;
     font-size: 14px;
     font-weight: 600;
     text-transform: uppercase;
@@ -617,7 +627,7 @@ table.dataTable tbody tr:hover {
 }
 
 .payout-cash-card .payout-cash-amount {
-    color: var(--abg-gold);
+    color: var(--masi-orange-on-dark);
     font-size: 30px;
     font-weight: 700;
 }
@@ -627,7 +637,7 @@ table.dataTable tbody tr:hover {
 }
 
 .payout-cash-card .payout-cash-sub {
-    color: #CFCFCF;
+    color: #C3C9DE;
     font-size: 13px;
     margin-top: 4px;
 }
@@ -642,7 +652,7 @@ table.dataTable tbody tr:hover {
 }
 
 .badge-reversed {
-    background-color: #EFEBE2;
+    background-color: #E6E9F0;
     color: var(--abg-muted);
     border-radius: 50rem;
     font-size: 13px;
@@ -773,7 +783,7 @@ table.dataTable tbody tr:hover {
 .pos-field:focus-visible {
     outline: none;
     border-color: var(--abg-gold);
-    box-shadow: 0 0 0 3px rgba(201, 161, 63, .22);
+    box-shadow: 0 0 0 3px rgba(196, 81, 43, .22);
 }
 
 .pos-field.is-invalid {
@@ -855,7 +865,7 @@ table.dataTable tbody tr:hover {
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.06em;
-    color: var(--abg-gold);
+    color: var(--masi-orange-on-dark);
 }
 
 .pos-total-amount {
@@ -866,7 +876,7 @@ table.dataTable tbody tr:hover {
 
 .pos-total-sub {
     font-size: 14px;
-    color: #CFCFCF;
+    color: #C3C9DE;
 }
 
 /* Payment method toggles (radio inputs styled as buttons) */
@@ -904,7 +914,7 @@ table.dataTable tbody tr:hover {
 }
 
 .btn-check:focus-visible + .pos-pay-btn {
-    box-shadow: 0 0 0 3px rgba(201, 161, 63, .35);
+    box-shadow: 0 0 0 3px rgba(196, 81, 43, .35);
 }
 
 .pos-btn-lg {
@@ -965,7 +975,7 @@ table.dataTable tbody tr:hover {
 
 .pos-pick-row:hover,
 .pos-pick-row:focus-visible {
-    background-color: #FAF8F3;
+    background-color: #F7F8FB;
     border-color: var(--abg-gold);
     outline: none;
 }
@@ -991,7 +1001,7 @@ table.dataTable tbody tr:hover {
     align-items: center;
     gap: 12px;
     padding: 10px 0;
-    border-bottom: 1px solid #EFEBE2;
+    border-bottom: 1px solid #E6E9F0;
 }
 
 .pos-today-row:last-of-type {
@@ -1052,7 +1062,7 @@ table.dataTable tbody tr:hover {
     justify-content: space-between;
     gap: 12px;
     padding: 8px 0;
-    border-bottom: 1px solid #EFEBE2;
+    border-bottom: 1px solid #E6E9F0;
 }
 
 .pos-saved-details > div:last-child {
@@ -1137,7 +1147,7 @@ table.dataTable tbody tr:hover {
 }
 
 .btn-check:focus-visible + .expense-cat-btn {
-    box-shadow: 0 0 0 3px rgba(201, 161, 63, .35);
+    box-shadow: 0 0 0 3px rgba(196, 81, 43, .35);
 }
 
 .expense-category-grid {
@@ -1174,7 +1184,7 @@ table.dataTable tbody tr:hover {
 
 .expense-chip:hover,
 .expense-chip:focus-visible {
-    background-color: #FAF8F3;
+    background-color: #F7F8FB;
     border-color: var(--abg-gold);
     outline: none;
 }
@@ -1267,7 +1277,7 @@ table.dataTable tbody tr:hover {
 }
 
 .cash-available-box-total .cash-available-box-amount {
-    color: var(--abg-gold);
+    color: var(--masi-orange-on-dark);
 }
 
 .cash-available-box-amount-negative {
@@ -1298,7 +1308,7 @@ table.dataTable tbody tr:hover {
 
 .sbs-row {
     padding: 10px 0;
-    border-bottom: 1px solid #EFEBE2;
+    border-bottom: 1px solid #E6E9F0;
 }
 
 .sbs-row:last-of-type {
@@ -1306,7 +1316,7 @@ table.dataTable tbody tr:hover {
 }
 
 .sbs-bar-track {
-    background-color: #F1EEE6;
+    background-color: #EDEFF4;
     border-radius: 6px;
     height: 12px;
     overflow: hidden;
@@ -1352,7 +1362,7 @@ table.dataTable tbody tr:hover {
     height: 96px;
     border-radius: 6px;
     overflow: hidden;
-    background-color: #F1EEE6;
+    background-color: #EDEFF4;
     gap: 2px;
 }
 
@@ -1389,7 +1399,7 @@ table.dataTable tbody tr:hover {
     column-gap: 12px;
     row-gap: 4px;
     padding: 10px 0;
-    border-bottom: 1px solid #EFEBE2;
+    border-bottom: 1px solid #E6E9F0;
 }
 
 .ebc-row:last-of-type {
@@ -1451,7 +1461,7 @@ table.dataTable tbody tr:hover {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    background-color: #FAF8F3;
+    background-color: #F7F8FB;
     border-radius: 10px;
     padding: 10px 14px;
     font-size: 13px;
@@ -1483,4 +1493,62 @@ table.dataTable tbody tr:hover {
     .ebc-bar-wrap {
         grid-area: bar;
     }
+}
+
+/* ---------- MASI logo in the sidebar: full sidebar width ---------- */
+.app-sidebar .sidebar-brand {
+    height: auto;
+    padding: 20px 22px 18px;
+    justify-content: center;
+}
+
+.app-sidebar .masi-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.app-sidebar .masi-brand .brand-text {
+    display: block;
+    width: 100%;
+    margin: 0;
+}
+
+.app-sidebar .masi-brand__logo {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.app-sidebar .masi-brand__mark {
+    display: none;
+    width: 34px;
+    height: auto;
+    max-height: none;
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+}
+
+/* Collapsed (mini) sidebar: show only the "m" mark */
+.sidebar-mini.sidebar-collapse .app-sidebar:not(:hover) .sidebar-brand {
+    padding: 13px 8px;
+}
+
+.sidebar-mini.sidebar-collapse .app-sidebar:not(:hover) .masi-brand__mark {
+    display: block;
+}
+
+.sidebar-mini.sidebar-collapse .app-sidebar:not(:hover) .masi-brand .brand-text {
+    display: none;
+}
+
+/* Active menu item: orange. AdminLTE's own (more specific) rule otherwise wins with a faint white tint. */
+.app-sidebar .sidebar-menu .nav-item > .nav-link.active,
+.app-sidebar .sidebar-menu .nav-treeview > .nav-item > .nav-link.active {
+    background-color: var(--abg-gold) !important;
+    color: #FFFFFF !important;
 }

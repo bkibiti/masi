@@ -7,6 +7,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sign in · {{ groupName() }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ filemtime(public_path('favicon-32x32.png')) }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}?v={{ filemtime(public_path('favicon-16x16.png')) }}">
     @include('partials.pwa_head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,10 +19,7 @@
 <body>
     <main class="login">
         <section class="login-brand">
-            {{-- Logo uploaded under Settings --}}
-            @if ($loginLogo = groupLogoUrl())
-                <img class="login-brand__logo" src="{{ $loginLogo }}" alt="{{ groupName() }}" width="132" height="132">
-            @endif
+            <img class="login-brand__logo" src="{{ groupLogoWhiteUrl() }}" alt="{{ groupName() }}" width="240" height="121">
 
             <div class="login-brand__middle">
                 <span class="login-brand__bar" aria-hidden="true"></span>

@@ -23,7 +23,7 @@
     $shortBadge = fn ($status, $paid = 0, $penalty = 0) => match (true) {
         str_starts_with($status, 'Paid on time') => formatAmount($paid),
         str_starts_with($status, 'Paid late') => formatAmount($paid),
-        str_starts_with($status, 'Partly paid') => 'Partial',
+        str_starts_with($status, 'Partly paid') => formatAmount($paid),
         str_starts_with($status, 'Unpaid') => $penalty > 0 ? formatAmount($penalty) : 'Unpaid',
         str_starts_with($status, 'Current month') => 'This month',
         str_starts_with($status, 'Not yet due') => 'Not due',

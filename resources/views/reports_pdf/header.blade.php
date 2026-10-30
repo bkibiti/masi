@@ -33,12 +33,8 @@
 <body>
     <div class="RowHeader">
         <div class="Column1">
-                @php
-                    $path = public_path('/logo/'. getSettings('logo')) ;
-                    $fileExists = File::exists($path);
-                @endphp
-                @if ($fileExists)
-                    <img src="{{public_path('/logo/'. getSettings('logo'))}}"  height="40" width="80" >
+                @if ($logoPath = groupLogoPath())
+                    <img src="{{ $logoPath }}" height="40" width="80" alt="{{ groupName() }}">
                 @endif
         </div>
         <div class="Column2">
