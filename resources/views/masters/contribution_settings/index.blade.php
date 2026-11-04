@@ -92,7 +92,8 @@
                                             data-title="{{ $locked ? 'View contribution setting' : 'Edit contribution setting' }}" data-locked="{{ $locked ? 1 : 0 }}"
                                             data-name="{{ $setting->name }}" data-start="{{ $setting->start_date->toDateString() }}"
                                             data-end="{{ $setting->end_date->toDateString() }}" data-amount="{{ $setting->monthly_amount }}"
-                                            data-percent="{{ $setting->penalty_percent }}" data-notes="{{ $setting->notes }}">
+                                            data-percent="{{ $setting->penalty_percent }}" data-notes="{{ $setting->notes }}"
+                                            data-penalties-start="{{ $setting->penalties_start_on?->toDateString() }}">
                                             {{ $locked ? 'View' : 'Edit' }}
                                         </button>
                                         @if (! $setting->hasDues())

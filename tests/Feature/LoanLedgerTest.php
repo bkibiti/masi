@@ -69,8 +69,8 @@ class LoanLedgerTest extends TestCase
     }
 
     /**
-     * A disbursed 2-installment, 0% interest, 10%/month-penalty loan: TZS 50,000 due on the
-     * last day of Feb 2026 and Mar 2026 (period ends 2026-03-31).
+     * A disbursed 2-installment, 0% interest, 10%/month-penalty loan released 2026-01-10:
+     * TZS 50,000 due on 2026-02-10 and 2026-03-10 (period ends 2026-03-10).
      */
     private function disbursedLoan(): Loan
     {
@@ -117,26 +117,26 @@ class LoanLedgerTest extends TestCase
     {
         $loan = $this->disbursedLoan();
 
-        Carbon::setTestNow('2026-03-15'); // installment 1 (due 2026-02-28) is overdue, but the period ends 2026-03-31
+        Carbon::setTestNow('2026-03-05'); // installment 1 (due 2026-02-10) is overdue, but the period ends 2026-03-10
         $this->loanLedger->rebuildForLoan($loan);
 
         $this->assertCount(0, $loan->penalties()->get());
     }
 
-    public function test_i_a_monthly_penalty_is_charged_on_the_1st_of_each_month_after_the_period_ends_until_paid(): void
+    public function test_i_a_monthly_penalty_is_charged_each_month_after_the_period_ends_until_paid(): void
     {
         $loan = $this->disbursedLoan();
 
-        Carbon::setTestNow('2026-05-15'); // two 1sts have passed since the period ended (2026-03-31)
+        Carbon::setTestNow('2026-04-20'); // period ended 2026-03-10: penalties on 2026-03-11 and 2026-04-11
         $this->loanLedger->rebuildForLoan($loan);
 
         $penalties = $loan->penalties()->orderBy('charged_on')->get();
 
         $this->assertCount(2, $penalties);
-        $this->assertSame('2026-04-01', $penalties[0]->charged_on->toDateString());
+        $this->assertSame('2026-03-11', $penalties[0]->charged_on->toDateString());
         $this->assertEquals(10000, $penalties[0]->amount); // 10% of the unpaid 100,000 installment balance
-        $this->assertSame('2026-05-01', $penalties[1]->charged_on->toDateString());
-        // The base excludes the unpaid 2026-04-01 penalty itself (rule 5), so it stays 10,000, not 11,000.
+        $this->assertSame('2026-04-11', $penalties[1]->charged_on->toDateString());
+        // The base excludes the unpaid 2026-03-11 penalty itself (rule 5), so it stays 10,000, not 11,000.
         $this->assertEquals(10000, $penalties[1]->amount);
     }
 
@@ -144,10 +144,10 @@ class LoanLedgerTest extends TestCase
     {
         $loan = $this->disbursedLoan();
 
-        Carbon::setTestNow('2026-05-15');
+        Carbon::setTestNow('2026-04-20');
         $this->loanLedger->rebuildForLoan($loan);
 
-        $this->repay($loan, 15000, '2026-05-20');
+        $this->repay($loan, 15000, '2026-04-25');
 
         $penalties = $loan->penalties()->orderBy('charged_on')->get();
         $this->assertEquals(10000, $penalties[0]->amount_paid); // fully paid
@@ -162,11 +162,11 @@ class LoanLedgerTest extends TestCase
     {
         $loan = $this->disbursedLoan();
 
-        Carbon::setTestNow('2026-05-15');
+        Carbon::setTestNow('2026-04-20');
         $this->loanLedger->rebuildForLoan($loan);
 
         // Clears both penalties (20,000) and all of installment 1 (50,000), 10,000 into installment 2.
-        $this->repay($loan, 80000, '2026-05-20');
+        $this->repay($loan, 80000, '2026-04-25');
 
         $installments = $loan->installments()->orderBy('number')->get();
         $this->assertEquals(50000, $installments[0]->amount_paid);

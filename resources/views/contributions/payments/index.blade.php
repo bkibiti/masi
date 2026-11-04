@@ -7,7 +7,7 @@
 @section('content-sub-title')
     <li class="breadcrumb-item"><a href="{{ route('home') }}"><i class="bi bi-house"></i></a></li>
     <li class="breadcrumb-item"><a href="{{ route('contributions.register') }}">Contributions</a></li>
-    <li class="breadcrumb-item active">Payments</li>
+    <li class="breadcrumb-item active">Payments History</li>
 @endsection
 
 @section("content")
@@ -61,7 +61,7 @@
             </form>
 
             <div class="table-responsive">
-                <table id="fixed-header" class="display table nowrap table-striped table-hover" style="width:100%">
+                <table id="fixed-header" class="display table nowrap table-striped table-hover" style="width:100%" data-order='[[0, "desc"]]'>
                     <thead>
                         <tr>
                             <th>Paid on</th>
@@ -77,7 +77,8 @@
                     <tbody>
                         @foreach ($payments as $payment)
                             <tr>
-                                <td>{{ $payment->paid_on->format('j M Y') }}</td>
+                                {{-- Sort by the real date (then entry order), newest first, not by the "j M Y" text --}}
+                                <td data-order="{{ $payment->paid_on->format('Y-m-d') }}-{{ str_pad($payment->id, 8, '0', STR_PAD_LEFT) }}">{{ $payment->paid_on->format('j M Y') }}</td>
                                 <td><a href="{{ route('members.show', $payment->member_id) }}">{{ $payment->member?->name }}</a></td>
                                 <td class="text-end">{{ formatAmount($payment->amount) }}</td>
                                 <td>{{ $payment->paymentType?->name ?? '—' }}</td>

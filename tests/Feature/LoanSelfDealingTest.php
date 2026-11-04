@@ -148,4 +148,19 @@ class LoanSelfDealingTest extends TestCase
 
         $this->service->disburse($loan, $treasurer, now()->toDateString(), PaymentMethod::first()->id, null, null);
     }
+
+    public function test_a_superuser_can_approve_and_disburse_their_own_loan(): void
+    {
+        \Spatie\Permission\Models\Role::findOrCreate('Superuser', 'web');
+
+        $member = Member::factory()->create();
+        $superuser = $this->linkedUser($member, 'Superuser');
+        $loan = $this->pendingApprovalLoanFor($member);
+
+        $this->service->approve($loan, $superuser);
+        $this->assertSame(Loan::STATUS_APPROVED, $loan->refresh()->status);
+
+        $this->service->disburse($loan, $superuser, now()->toDateString(), PaymentMethod::first()->id, null, null);
+        $this->assertSame(Loan::STATUS_DISBURSED, $loan->refresh()->status);
+    }
 }

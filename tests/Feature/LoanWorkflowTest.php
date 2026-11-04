@@ -143,7 +143,7 @@ class LoanWorkflowTest extends TestCase
         $this->assertSame(Loan::STATUS_DISBURSED, $loan->refresh()->status);
     }
 
-    public function test_g_disbursement_creates_the_schedule_with_end_of_month_due_dates_starting_next_month(): void
+    public function test_g_disbursement_creates_the_schedule_with_monthly_due_dates_from_the_release_date(): void
     {
         $loan = $this->pendingApprovalLoan();
         $officer = User::factory()->create();
@@ -156,9 +156,9 @@ class LoanWorkflowTest extends TestCase
         $installments = $loan->installments()->orderBy('number')->get();
 
         $this->assertCount(6, $installments);
-        $this->assertSame('2026-02-28', $installments[0]->due_date->toDateString());
-        $this->assertSame('2026-03-31', $installments[1]->due_date->toDateString());
-        $this->assertSame('2026-07-31', $installments[5]->due_date->toDateString());
+        $this->assertSame('2026-02-15', $installments[0]->due_date->toDateString());
+        $this->assertSame('2026-03-15', $installments[1]->due_date->toDateString());
+        $this->assertSame('2026-07-15', $installments[5]->due_date->toDateString());
         $this->assertSame(Loan::STATUS_DISBURSED, $loan->refresh()->status);
     }
 }

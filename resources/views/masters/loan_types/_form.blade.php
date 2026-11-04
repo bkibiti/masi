@@ -58,6 +58,27 @@
                         <label class="form-label">Penalty % per month (after the loan period ends) <span class="text-danger">*</span></label>
                         <input type="number" name="penalty_percent" class="form-control f-penalty" min="0" max="100" step="0.01" required value="{{ old('penalty_percent') }}">
                     </div>
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <label class="form-label">Round installment <span class="text-danger">*</span></label>
+                        <select name="installment_rounding" class="form-select f-installment-rounding" required>
+                            @foreach (\App\Models\LoanType::INSTALLMENT_ROUNDING_OPTIONS as $value => $label)
+                                <option value="{{ $value }}" @selected((int) old('installment_rounding', 1000) === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Round monthly interest <span class="text-danger">*</span></label>
+                        <select name="interest_rounding" class="form-select f-interest-rounding" required>
+                            @foreach (\App\Models\LoanType::INTEREST_ROUNDING_OPTIONS as $value => $label)
+                                <option value="{{ $value }}" @selected((int) old('interest_rounding', 100) === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 small text-muted">
+                        The last installment is always reduced to what is actually left, so the member never repays more than the loan plus interest.
+                        Rounding changes apply to loans applied for after you save.
+                    </div>
                     <div class="col-12">
                         <hr>
                         <div class="small text-muted mb-1">Example: TZS 1,000,000 over the maximum duration</div>
@@ -92,6 +113,8 @@
                     interest_rate: rate,
                     duration_months: months,
                     interest_method: method,
+                    installment_rounding: $form.find('.f-installment-rounding').val(),
+                    interest_rounding: $form.find('.f-interest-rounding').val(),
                 }).done(function (data) {
                     var first = data.installments[0];
                     var last = data.installments[data.installments.length - 1];
@@ -105,7 +128,7 @@
                 });
             }
 
-            $(document).on('change input', '#loan-type-modal .f-rate, #loan-type-modal .f-max-months, #loan-type-modal .f-method', function () {
+            $(document).on('change input', '#loan-type-modal .f-rate, #loan-type-modal .f-max-months, #loan-type-modal .f-method, #loan-type-modal .f-installment-rounding, #loan-type-modal .f-interest-rounding', function () {
                 updateExample($(this).closest('form'));
             });
 
@@ -133,6 +156,8 @@
                 $form.find('.f-min-months').val(b.data('minMonths') ?? '');
                 $form.find('.f-max-months').val(b.data('maxMonths') ?? '');
                 $form.find('.f-penalty').val(b.data('penalty') ?? '');
+                $form.find('.f-installment-rounding').val(String(b.data('installmentRounding') ?? 1000));
+                $form.find('.f-interest-rounding').val(String(b.data('interestRounding') ?? 100));
                 $form.find('.f-active').prop('checked', b.data('active') === undefined ? true : (b.data('active') === 1 || b.data('active') === '1'));
 
                 $form.find('.f-method, .f-rate, .f-min-amount, .f-max-amount, .f-min-months, .f-max-months, .f-penalty').prop('disabled', locked);

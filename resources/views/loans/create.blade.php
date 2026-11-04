@@ -49,6 +49,11 @@
                         <label class="form-label">Duration (months) <span class="text-danger">*</span></label>
                         <input type="number" name="requested_duration_months" class="form-control f-months" min="1" step="1" required value="{{ old('requested_duration_months') }}">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Application date <span class="text-danger">*</span></label>
+                        <input type="date" name="applied_on" class="form-control" max="{{ now()->toDateString() }}" required value="{{ old('applied_on', now()->toDateString()) }}">
+                        <div class="form-text">Leave as today for a new application. Pick an earlier date to record a loan that was already taken.</div>
+                    </div>
                     <div class="col-12">
                         <label class="form-label">Purpose</label>
                         <textarea name="purpose" class="form-control" rows="2" maxlength="1000">{{ old('purpose') }}</textarea>

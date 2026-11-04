@@ -141,7 +141,7 @@ class ContributionLedgerTest extends TestCase
         $this->assertEquals(2500, $due->penalties->first()->amount); // 10% of (40,000 - 15,000)
     }
 
-    public function test_d_a_payment_clears_the_oldest_months_penalties_then_its_contribution_then_the_next_month(): void
+    public function test_d_a_monthly_fee_pays_contributions_oldest_first_and_never_penalties(): void
     {
         $this->setting();
         $member = $this->memberSince('2025-01-10');
@@ -155,15 +155,14 @@ class ContributionLedgerTest extends TestCase
         $jan = MemberDue::where('member_id', $member->id)->whereDate('period', '2025-01-01')->first();
         $feb = MemberDue::where('member_id', $member->id)->whereDate('period', '2025-02-01')->first();
 
-        // Jan: 2 penalties of 4,000 (8,000) + contribution 40,000 = 48,000, fully cleared.
+        // Jan's 40,000 is cleared first, the remaining 10,000 goes to Feb's contribution.
         $this->assertEquals(40000, $jan->amount_paid);
-        $this->assertTrue($jan->penalties->every(fn ($p) => (float) $p->amount_paid === (float) $p->amount));
+        $this->assertEquals(10000, $feb->amount_paid);
 
-        // Remaining 2,000 of the 50,000 goes to Feb's penalty, nothing to Feb's contribution yet.
-        $this->assertEquals(0, $feb->amount_paid);
-        $this->assertCount(1, $feb->penalties);
-        $this->assertEquals(2000, $feb->penalties->first()->amount_paid);
-        $this->assertEquals(4000, $feb->penalties->first()->amount);
+        // Penalties are left for a Fines / Penalties payment.
+        $this->assertCount(2, $jan->penalties);
+        $this->assertTrue($jan->penalties->every(fn ($p) => (float) $p->amount_paid === 0.0));
+        $this->assertEquals(0, $feb->penalties->first()->amount_paid);
     }
 
     public function test_e_an_overpayment_becomes_credit_and_is_applied_to_the_next_month(): void
@@ -313,5 +312,39 @@ class ContributionLedgerTest extends TestCase
         $this->assertEquals(2000, $feb->penalties->first()->amount_paid); // pre-paid from the 2,000 leftover
         $this->assertEquals(4000, $feb->penalties->first()->amount); // the full penalty amount is unchanged
         $this->assertEquals(0, $feb->amount_paid); // Feb's contribution itself was never paid
+    }
+
+    public function test_no_penalty_before_the_penalties_start_date_then_all_unpaid_months_are_fined_on_it(): void
+    {
+        $setting = $this->setting('2026-01-01', '2026-12-31', 500000, 5);
+        $setting->update(['penalties_start_on' => '2026-03-01']);
+
+        $member = $this->memberSince('2026-01-01');
+
+        Carbon::setTestNow('2026-03-15');
+        $this->ledger->rebuildForMember($member);
+
+        $jan = MemberDue::where('member_id', $member->id)->where('period', '2026-01-01')->first();
+        $feb = MemberDue::where('member_id', $member->id)->where('period', '2026-02-01')->first();
+
+        // January's month-end (penalty would have been 1 Feb) passed before penalties started.
+        $this->assertSame(['2026-03-01'], $jan->penalties()->get()->map(fn ($p) => $p->charged_on->toDateString())->all());
+        $this->assertSame(['2026-03-01'], $feb->penalties()->get()->map(fn ($p) => $p->charged_on->toDateString())->all());
+        $this->assertEquals(25000, $jan->penalties()->first()->amount);
+    }
+
+    public function test_penalties_are_rounded_to_the_nearest_100(): void
+    {
+        $this->setting('2025-01-01', '2025-12-31', 40000, 5);
+        $member = $this->memberSince('2025-01-10');
+
+        // 40,000 - 12,125 = 27,875 unpaid at the end of January: 5% = 1,393.75 -> 1,400.
+        $this->monthlyFeePayment(['member_id' => $member->id, 'amount' => 12125, 'paid_on' => '2025-01-20']);
+
+        Carbon::setTestNow('2025-02-15');
+        $this->ledger->rebuildForMember($member);
+
+        $jan = MemberDue::where('member_id', $member->id)->whereDate('period', '2025-01-01')->first();
+        $this->assertEquals(1400, $jan->penalties()->first()->amount);
     }
 }

@@ -9,7 +9,8 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Disbursed on <span class="text-danger">*</span></label>
-                    <input type="date" name="disbursed_on" class="form-control" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
+                    <input type="date" name="disbursed_on" class="form-control" min="{{ $loan->approved_at?->toDateString() }}" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
+                    <div class="form-text">For a loan already taken, use the date the money was actually released: the repayment schedule starts from it.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Payment method <span class="text-danger">*</span></label>
@@ -28,7 +29,7 @@
                     <label class="form-label">Notes</label>
                     <input type="text" name="notes" class="form-control" maxlength="1000">
                 </div>
-                <p class="text-muted small mb-0">This creates the repayment schedule: {{ $loan->effectiveDurationMonths() }} installments starting the last day of next month.</p>
+                <p class="text-muted small mb-0">This creates the repayment schedule: {{ $loan->effectiveDurationMonths() }} monthly installments, the first due one month after the release date (e.g. released 10 Jan → due 10 Feb, 10 Mar, …).</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

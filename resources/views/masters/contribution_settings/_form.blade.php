@@ -10,7 +10,7 @@
             </div>
             <div class="modal-body">
                 <div id="setting-locked-notice" class="alert alert-secondary d-none">
-                    Dates, amount and penalty % are locked because payments already exist for this setting.
+                    Dates, amount and penalty % are locked because payments already exist for this setting. You can still change the name, notes and "Penalties start on".
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -34,6 +34,11 @@
                     <div class="col-md-6">
                         <label class="form-label">Penalty % <span class="text-danger">*</span></label>
                         <input type="number" name="penalty_percent" class="form-control setting-percent" min="0" max="100" step="0.01" required value="{{ old('penalty_percent') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Penalties start on</label>
+                        <input type="date" name="penalties_start_on" class="form-control setting-penalties-start" value="{{ old('penalties_start_on') }}">
+                        <div class="form-text">Optional. No penalty is charged before this date; on this date every unpaid month gets its first penalty. Leave blank to fine from the first month.</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Notes</label>
@@ -117,10 +122,11 @@
                 $form.find('.setting-amount').val(b.data('amount') ?? '');
                 $form.find('.setting-percent').val(b.data('percent') ?? '');
                 $form.find('[name=notes]').val(b.data('notes') ?? '');
+                $form.find('.setting-penalties-start').val(b.data('penaltiesStart') ?? '');
 
                 $form.find('.setting-start, .setting-end, .setting-amount, .setting-percent').prop('readonly', locked).prop('disabled', false);
                 $modal.find('#setting-locked-notice').toggleClass('d-none', ! locked);
-                $modal.find('.setting-submit').text(locked ? 'Save name / notes' : 'Save');
+                $modal.find('.setting-submit').text(locked ? 'Save changes' : 'Save');
 
                 updateSummary();
             });

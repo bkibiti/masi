@@ -16,7 +16,7 @@
                 <th>Month</th>
                 <th class="text-end">Expected</th>
                 <th class="text-end">Penalties</th>
-                <th class="text-end">Paid</th>
+                <th class="text-end">Amount</th>
                 <th>Paid on</th>
                 <th class="text-end">Balance</th>
                 <th>Status</th>

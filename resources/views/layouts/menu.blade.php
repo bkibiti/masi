@@ -57,14 +57,7 @@
     </li>
 @endif
 
-@can('View Members')
-    <li class="nav-item">
-        <a href="{{ route('members.index') }}" class="nav-link {{ $membersActive ? 'active' : '' }}">
-            <i class="nav-icon bi bi-people"></i>
-            <p>Members</p>
-        </a>
-    </li>
-@endcan
+
 
 @canany(['View Contributions', 'Record Payments', 'Manage Payments'])
     <li class="nav-item {{ $contributionsActive ? 'menu-open' : '' }}">
@@ -83,7 +76,7 @@
                 <li class="nav-item">
                     <a href="{{ route('contributions.payments.index') }}" class="nav-link {{ request()->routeIs('contributions.payments.*') ? 'active' : '' }}">
                         <i class="nav-icon bi bi-circle"></i>
-                        <p>Payments</p>
+                        <p>Payments History</p>
                     </a>
                 </li>
             @endcan
@@ -170,6 +163,14 @@
             <p>Masters <i class="nav-arrow bi bi-chevron-right"></i></p>
         </a>
         <ul class="nav nav-treeview">
+            @can('View Members')
+    <li class="nav-item">
+        <a href="{{ route('members.index') }}" class="nav-link {{ $membersActive ? 'active' : '' }}">
+            <i class="nav-icon bi bi-people"></i>
+            <p>Members</p>
+        </a>
+    </li>
+@endcan
             @can('View Contribution Settings')
                 <li class="nav-item">
                     <a href="{{ route('contribution-settings.index') }}" class="nav-link {{ request()->routeIs('contribution-settings.*') ? 'active' : '' }}">

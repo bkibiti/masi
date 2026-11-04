@@ -86,7 +86,11 @@ class ContributionLedger
         }
 
         $allDues = $member->dues()->with('penalties')->get();
-        $dueBalance = (float) $allDues->sum(fn (MemberDue $d) => $d->balance());
+        // Arrears = only what is past due: a month whose due date hasn't passed yet (e.g. the
+        // current month) is not in arrears.
+        $dueBalance = (float) $allDues
+            ->filter(fn (MemberDue $d) => $d->due_date->toDateString() < $today->toDateString())
+            ->sum(fn (MemberDue $d) => $d->balance());
         $penaltyBalance = (float) $allDues->flatMap(fn (MemberDue $d) => $d->penalties)->sum(fn (MemberPenalty $p) => $p->balance());
         $totalPaid = (float) $member->payments()->ledgerRelevant()->sum('amount');
         $totalAllocated = (float) $allDues->sum('amount_paid') + (float) $allDues->flatMap(fn (MemberDue $d) => $d->penalties)->sum('amount_paid');
@@ -121,8 +125,9 @@ class ContributionLedger
     }
 
     /**
-     * Arrears broken down by month, and how a given amount would be allocated against
-     * them right now (oldest month first, penalties before contribution). Read-only:
+     * Arrears broken down by month, and how a given monthly-fee amount would be allocated
+     * against them right now (oldest month first; monthly fees pay contributions only,
+     * penalties are paid by Fines / Penalties payments). Read-only:
      * nothing is persisted. Used by the record-payment form's live preview.
      *
      * @return array<string, mixed>
@@ -151,13 +156,8 @@ class ContributionLedger
                 'total_balance' => $penaltyBalance + $contributionBalance,
             ];
 
-            $penaltyPay = 0.0;
+            $penaltyPay = 0.0; // monthly fees never pay penalties
             $contributionPay = 0.0;
-
-            if ($remaining > 0 && $penaltyBalance > 0) {
-                $penaltyPay = min($remaining, $penaltyBalance);
-                $remaining -= $penaltyPay;
-            }
 
             if ($remaining > 0 && $contributionBalance > 0) {
                 $contributionPay = min($remaining, $contributionBalance);
@@ -288,6 +288,8 @@ class ContributionLedger
                     'amount' => (float) $setting->monthly_amount,
                     'amount_paid' => 0.0,
                     'penalty_percent' => (float) $setting->penalty_percent,
+                    // No penalty is charged before this date (null = penalties apply from the start).
+                    'penalties_start_on' => $setting->penalties_start_on?->toDateString(),
                     'due_date' => $monthEnd,
                     'penalties' => [], // each: ['model' => MemberPenalty, 'amount' => float, 'amount_paid' => float]
                 ];
@@ -399,34 +401,10 @@ class ContributionLedger
     {
         $remaining = (float) $payment->amount;
 
+        // Monthly-fee payments pay monthly contributions only, oldest month first. Penalties are
+        // paid only by Fines / Penalties payments (allocatePenaltyPayment()), because MASI
+        // records fines separately; letting fees clear penalties too would pay them twice.
         foreach ($duesState as &$state) {
-            if ($remaining <= 0) {
-                break;
-            }
-
-            foreach ($state['penalties'] as &$penaltyState) {
-                if ($remaining <= 0) {
-                    break;
-                }
-
-                $balance = $penaltyState['amount'] - $penaltyState['amount_paid'];
-                if ($balance <= 0) {
-                    continue;
-                }
-
-                $pay = min($remaining, $balance);
-                $penaltyState['amount_paid'] += $pay;
-                $remaining -= $pay;
-
-                PaymentAllocation::create([
-                    'payment_id' => $payment->id,
-                    'allocatable_type' => MemberPenalty::class,
-                    'allocatable_id' => $penaltyState['model']->id,
-                    'amount' => $pay,
-                ]);
-            }
-            unset($penaltyState);
-
             if ($remaining <= 0) {
                 break;
             }
@@ -505,8 +483,15 @@ class ContributionLedger
         }
 
         $outstanding = $state['amount'] - $state['amount_paid'];
-        $penaltyAmount = (float) round($outstanding * $state['penalty_percent'] / 100);
+        // Rounded to the nearest 100 TZS, like Excel's ROUND(x, -2), so fines are easy to pay.
+        $penaltyAmount = (float) round($outstanding * $state['penalty_percent'] / 100, -2);
         $chargedOn = $evaluationDate->addDay();
+
+        // Penalties only began on the setting's "penalties start on" date: month-ends before it
+        // pass without a fine, and whatever is still unpaid gets its first penalty on/after it.
+        if (! empty($state['penalties_start_on']) && $chargedOn->toDateString() < $state['penalties_start_on']) {
+            return;
+        }
 
         $penalty = MemberPenalty::create([
             'member_id' => $member->id,

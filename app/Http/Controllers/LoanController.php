@@ -46,7 +46,9 @@ class LoanController extends Controller
             ->get();
 
         $today = now()->toDateString();
-        $grouped = array_fill_keys(array_keys(self::TABS), collect());
+        // One separate collection per tab. (array_fill_keys(..., collect()) would put the SAME
+        // collection object under every key, so each loan showed up, and was counted, in every tab.)
+        $grouped = array_map(fn () => collect(), self::TABS);
 
         foreach ($loans as $loan) {
             $grouped[$this->tabFor($loan, $today)]->push($loan);
@@ -144,7 +146,7 @@ class LoanController extends Controller
         $summary = $eligibility->summary($member, $amount);
         $withinLimits = $eligibility->withinLoanTypeLimits($loanType, $amount, $months);
         $rows = $withinLimits
-            ? $calculator->installments($amount, (float) $loanType->interest_rate, $months, $loanType->interest_method, CarbonImmutable::now())
+            ? $calculator->installments($amount, (float) $loanType->interest_rate, $months, $loanType->interest_method, CarbonImmutable::now(), (int) $loanType->installment_rounding, (int) $loanType->interest_rounding)
             : [];
 
         return response()->json([

@@ -27,8 +27,11 @@ class LoanService
     /**
      * @param  array<int, array{guarantor_member_id: int, guaranteed_amount: float}>  $guarantors
      */
-    public function apply(Member $member, LoanType $loanType, float $amount, int $months, ?string $purpose, array $guarantors, User $actingUser): Loan
+    public function apply(Member $member, LoanType $loanType, float $amount, int $months, ?string $purpose, array $guarantors, User $actingUser, ?string $appliedOn = null): Loan
     {
+        // Staff may back-date an application to record a loan that was already taken.
+        $appliedAt = $this->workflowDate($appliedOn);
+
         if ($this->eligibility->hasActiveLoan($member)) {
             throw ValidationException::withMessages(['member_id' => 'This member already has an active loan.']);
         }
@@ -45,7 +48,7 @@ class LoanService
 
         $summary = $this->eligibility->summary($member, $amount);
 
-        return DB::transaction(function () use ($member, $loanType, $amount, $months, $purpose, $guarantors, $actingUser, $summary) {
+        return DB::transaction(function () use ($member, $loanType, $amount, $months, $purpose, $guarantors, $actingUser, $summary, $appliedAt) {
             $status = $summary['guarantors_required'] ? Loan::STATUS_PENDING_GUARANTORS : Loan::STATUS_PENDING_APPROVAL;
 
             $loan = Loan::create([
@@ -57,11 +60,13 @@ class LoanService
                 'interest_method' => $loanType->interest_method,
                 'interest_rate' => $loanType->interest_rate,
                 'penalty_percent' => $loanType->penalty_percent,
+                'installment_rounding' => $loanType->installment_rounding ?? 1,
+                'interest_rounding' => $loanType->interest_rounding ?? 1,
                 'status' => $status,
                 'applicant_contributions_total' => $summary['contributions_total'],
                 'required_guarantee_amount' => $summary['required_guarantee_amount'],
                 'applied_by' => $actingUser->id,
-                'applied_at' => now(),
+                'applied_at' => $appliedAt,
             ]);
 
             if ($summary['guarantors_required']) {
@@ -70,7 +75,7 @@ class LoanService
                 }
             }
 
-            $this->recordHistory($loan, null, $status, $actingUser, null);
+            $this->recordHistory($loan, null, $status, $actingUser, null, $appliedAt);
 
             return $loan;
         });
@@ -141,10 +146,16 @@ class LoanService
      * The Loan Officer may approve a lower amount or shorter duration (within the loan type's
      * current limits); the guarantor requirement is recalculated against the final amount.
      */
-    public function approve(Loan $loan, User $officer, ?float $approvedAmount = null, ?int $approvedMonths = null): Loan
+    public function approve(Loan $loan, User $officer, ?float $approvedAmount = null, ?int $approvedMonths = null, ?string $approvedOn = null): Loan
     {
         if ($loan->status !== Loan::STATUS_PENDING_APPROVAL) {
             throw ValidationException::withMessages(['status' => 'Only a loan pending approval can be approved.']);
+        }
+
+        $approvedAt = $this->workflowDate($approvedOn);
+
+        if ($loan->applied_at && $approvedAt->toDateString() < $loan->applied_at->toDateString()) {
+            throw ValidationException::withMessages(['approved_on' => 'The approval date cannot be before the application date ('.$loan->applied_at->format('j M Y').').']);
         }
 
         $this->guardAgainstSelfDealing($loan, $officer, 'approve');
@@ -163,7 +174,7 @@ class LoanService
 
         $requiredGuarantee = $this->eligibility->requiredGuarantee($loan->member, $finalAmount);
 
-        return DB::transaction(function () use ($loan, $finalAmount, $finalMonths, $requiredGuarantee, $officer) {
+        return DB::transaction(function () use ($loan, $finalAmount, $finalMonths, $requiredGuarantee, $officer, $approvedAt) {
             $loan->update(['required_guarantee_amount' => $requiredGuarantee]);
 
             if ($requiredGuarantee > 0 && ! $loan->guaranteesCoverRequirement()) {
@@ -175,10 +186,10 @@ class LoanService
                 'approved_duration_months' => $finalMonths,
                 'status' => Loan::STATUS_APPROVED,
                 'approved_by' => $officer->id,
-                'approved_at' => now(),
+                'approved_at' => $approvedAt,
             ]);
 
-            $this->recordHistory($loan, Loan::STATUS_PENDING_APPROVAL, Loan::STATUS_APPROVED, $officer, null);
+            $this->recordHistory($loan, Loan::STATUS_PENDING_APPROVAL, Loan::STATUS_APPROVED, $officer, null, $approvedAt);
 
             return $loan;
         });
@@ -240,6 +251,10 @@ class LoanService
 
         $this->guardAgainstSelfDealing($loan, $treasurer, 'disburse');
 
+        if ($loan->approved_at && $disbursedOn < $loan->approved_at->toDateString()) {
+            throw ValidationException::withMessages(['disbursed_on' => 'The disbursement date cannot be before the approval date ('.$loan->approved_at->format('j M Y').').']);
+        }
+
         return DB::transaction(function () use ($loan, $treasurer, $disbursedOn, $paymentMethodId, $reference, $notes) {
             $disbursedOnDate = CarbonImmutable::parse($disbursedOn);
 
@@ -249,6 +264,8 @@ class LoanService
                 $loan->effectiveDurationMonths(),
                 $loan->interest_method,
                 $disbursedOnDate,
+                (int) ($loan->installment_rounding ?? 1),
+                (int) ($loan->interest_rounding ?? 1),
             );
 
             foreach ($rows as $row) {
@@ -272,7 +289,11 @@ class LoanService
                 'disbursement_notes' => $notes,
             ]);
 
-            $this->recordHistory($loan, Loan::STATUS_APPROVED, Loan::STATUS_DISBURSED, $treasurer, null);
+            $this->recordHistory($loan, Loan::STATUS_APPROVED, Loan::STATUS_DISBURSED, $treasurer, null, $disbursedOnDate);
+
+            // A back-dated loan may already be past installments or its end date: work out its
+            // standing (and any penalties) straight away instead of waiting for the daily refresh.
+            app(LoanLedger::class)->rebuildForLoan($loan->refresh());
 
             return $loan;
         });
@@ -280,10 +301,14 @@ class LoanService
 
     /**
      * A Loan Officer/Treasurer who is also a member cannot approve or disburse their own
-     * loan, or one they are guaranteeing.
+     * loan, or one they are guaranteeing. Superusers are exempt and can act on any loan.
      */
     private function guardAgainstSelfDealing(Loan $loan, User $actingUser, string $action): void
     {
+        if ($actingUser->hasRole('Superuser')) {
+            return;
+        }
+
         $actingMember = $actingUser->member;
 
         if ($actingMember === null) {
@@ -306,14 +331,31 @@ class LoanService
         $this->recordHistory($loan, $fromStatus, $toStatus, $actingUser, $note);
     }
 
-    private function recordHistory(Loan $loan, ?string $fromStatus, string $toStatus, ?User $actingUser, ?string $note): void
+    /**
+     * The date a workflow step happened: the chosen date for a back-dated entry (today's date
+     * keeps the current time), or now.
+     */
+    private function workflowDate(?string $date): CarbonImmutable
     {
-        LoanStatusHistory::create([
+        if ($date === null || $date === '' || $date === now()->toDateString()) {
+            return CarbonImmutable::now();
+        }
+
+        return CarbonImmutable::parse($date)->setTime(12, 0);
+    }
+
+    private function recordHistory(Loan $loan, ?string $fromStatus, string $toStatus, ?User $actingUser, ?string $note, ?CarbonImmutable $at = null): void
+    {
+        $history = LoanStatusHistory::create([
             'loan_id' => $loan->id,
             'from_status' => $fromStatus,
             'to_status' => $toStatus,
             'changed_by' => $actingUser?->id,
             'note' => $note,
         ]);
+
+        if ($at !== null && ! $at->isSameDay(now())) {
+            $history->forceFill(['created_at' => $at, 'updated_at' => $at])->saveQuietly();
+        }
     }
 }

@@ -75,6 +75,9 @@ class ContributionSettingController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'monthly_amount' => 'required|numeric|min:0.01',
             'penalty_percent' => 'required|numeric|min:0|max:100',
+            // Editable even when the setting is locked: it only decides from when unpaid months
+            // are fined, and the ledger is rebuilt after saving.
+            'penalties_start_on' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
         ]);
 

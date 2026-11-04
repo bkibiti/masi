@@ -36,7 +36,7 @@ class Loan extends Model
     protected $fillable = [
         'member_id', 'loan_type_id', 'requested_amount', 'requested_duration_months', 'purpose',
         'approved_amount', 'approved_duration_months',
-        'interest_method', 'interest_rate', 'penalty_percent',
+        'interest_method', 'interest_rate', 'penalty_percent', 'installment_rounding', 'interest_rounding',
         'status', 'applicant_contributions_total', 'required_guarantee_amount',
         'applied_by', 'applied_at',
         'approved_by', 'approved_at',
@@ -56,6 +56,8 @@ class Loan extends Model
             'approved_duration_months' => 'integer',
             'interest_rate' => 'decimal:2',
             'penalty_percent' => 'decimal:2',
+            'installment_rounding' => 'integer',
+            'interest_rounding' => 'integer',
             'applicant_contributions_total' => 'decimal:2',
             'required_guarantee_amount' => 'decimal:2',
             'applied_at' => 'datetime',

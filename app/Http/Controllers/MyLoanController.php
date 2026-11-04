@@ -118,7 +118,7 @@ class MyLoanController extends Controller
         $summary = $eligibility->summary($member, $amount);
         $withinLimits = $eligibility->withinLoanTypeLimits($loanType, $amount, $months);
         $rows = $withinLimits
-            ? $calculator->installments($amount, (float) $loanType->interest_rate, $months, $loanType->interest_method, CarbonImmutable::now())
+            ? $calculator->installments($amount, (float) $loanType->interest_rate, $months, $loanType->interest_method, CarbonImmutable::now(), (int) $loanType->installment_rounding, (int) $loanType->interest_rounding)
             : [];
 
         return response()->json([

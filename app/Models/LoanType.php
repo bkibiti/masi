@@ -20,12 +20,23 @@ class LoanType extends Model
     /** @var array<int, string> */
     public const INTEREST_METHODS = [self::METHOD_MONTHLY_REDUCING, self::METHOD_FIXED];
 
+    /**
+     * Rounding choices for the schedule. Installment: rounded UP to a multiple of this.
+     * Interest: rounded to the NEAREST multiple. MASI's Excel sheet uses 1,000 and 100.
+     *
+     * @var array<int, string>
+     */
+    public const INSTALLMENT_ROUNDING_OPTIONS = [1 => 'Exact (whole TZS)', 100 => 'Up to the next 100', 1000 => 'Up to the next 1,000'];
+
+    /** @var array<int, string> */
+    public const INTEREST_ROUNDING_OPTIONS = [1 => 'Exact (whole TZS)', 10 => 'Nearest 10', 100 => 'Nearest 100', 1000 => 'Nearest 1,000'];
+
     protected $table = 'loan_types';
 
     protected $fillable = [
         'name', 'description', 'interest_method', 'interest_rate',
         'min_amount', 'max_amount', 'min_duration_months', 'max_duration_months',
-        'penalty_percent', 'is_active',
+        'penalty_percent', 'installment_rounding', 'interest_rounding', 'is_active',
     ];
 
     protected function casts(): array
@@ -37,6 +48,8 @@ class LoanType extends Model
             'min_duration_months' => 'integer',
             'max_duration_months' => 'integer',
             'penalty_percent' => 'decimal:2',
+            'installment_rounding' => 'integer',
+            'interest_rounding' => 'integer',
             'is_active' => 'boolean',
         ];
     }

@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\PaymentType;
 use App\Services\ContributionLedger;
 use App\Services\LoanLedger;
+use App\Services\PenaltyPaymentSplitter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -89,11 +90,12 @@ class PaymentController extends Controller
         return response()->json([...$preview, 'ledger_role' => $paymentType->ledger_role, 'loans' => []]);
     }
 
-    public function store(Request $request, ContributionLedger $ledger, LoanLedger $loanLedger): RedirectResponse
+    public function store(Request $request, ContributionLedger $ledger, LoanLedger $loanLedger, PenaltyPaymentSplitter $splitter): RedirectResponse
     {
         $data = $this->validated($request);
+        $split = null;
 
-        DB::transaction(function () use ($data, $ledger, $loanLedger) {
+        DB::transaction(function () use ($data, $ledger, $loanLedger, $splitter, &$split) {
             $payment = Payment::create([
                 ...$data,
                 'recorded_by' => auth()->id(),
@@ -101,12 +103,18 @@ class PaymentController extends Controller
 
             $ledger->rebuildForMember($payment->member);
 
+            // Fines are paid first: if this monthly payment arrives while a fine is unpaid, the
+            // part needed for the fine is recorded as a separate Fines / Penalties payment.
+            $split = $splitter->splitPayment($payment);
+
             if ($payment->loan_id) {
                 $loanLedger->rebuildForLoan($payment->loan);
             }
         });
 
-        session()->flash('alert-success', 'Payment recorded.');
+        session()->flash('alert-success', $split
+            ? 'Payment recorded. TZS '.number_format($split['fine']).' went to unpaid fines first and TZS '.number_format($split['fee']).' to the monthly fee.'
+            : 'Payment recorded.');
 
         return redirect()->route('contributions.payments.index');
     }

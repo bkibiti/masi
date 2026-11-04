@@ -61,7 +61,8 @@
                                             data-method-value="{{ $type->interest_method }}" data-rate="{{ $type->interest_rate }}"
                                             data-min-amount="{{ $type->min_amount }}" data-max-amount="{{ $type->max_amount }}"
                                             data-min-months="{{ $type->min_duration_months }}" data-max-months="{{ $type->max_duration_months }}"
-                                            data-penalty="{{ $type->penalty_percent }}" data-active="{{ $type->is_active ? 1 : 0 }}">
+                                            data-penalty="{{ $type->penalty_percent }}" data-active="{{ $type->is_active ? 1 : 0 }}"
+                                            data-installment-rounding="{{ $type->installment_rounding }}" data-interest-rounding="{{ $type->interest_rounding }}">
                                             Edit
                                         </button>
                                         @if (! $type->isInUse())

@@ -56,12 +56,16 @@ class LoanLedger
 
             $events = [];
 
-            // Penalties are charged on the 1st of every month once the loan's period has fully
-            // ended, while a balance remains (rule 5) -- never during the period itself.
-            $checkpoint = $periodEnd->addDay();
-            while ($checkpoint->toDateString() <= $today->toDateString()) {
+            // Penalties are charged monthly once the loan's period has fully ended, while a balance
+            // remains (rule 5) -- never during the period itself. They follow the loan's own
+            // monthly cycle: the day after the last due date, then the same day each month after
+            // (last due 10 Mar -> penalties on 11 Mar, 11 Apr, 11 May, ...).
+            for ($k = 0; ; $k++) {
+                $checkpoint = $periodEnd->addMonthsNoOverflow($k)->addDay();
+                if ($checkpoint->toDateString() > $today->toDateString()) {
+                    break;
+                }
                 $events[] = ['order' => 1, 'date' => $checkpoint];
-                $checkpoint = $checkpoint->addMonthNoOverflow()->startOfMonth();
             }
 
             $payments = $loan->payments()->orderBy('paid_on')->orderBy('id')->get();

@@ -15,43 +15,59 @@ class LoanCalculator
     /**
      * @return array<int, array{number: int, due_date: CarbonImmutable, principal: float, interest: float, amount: float}>
      */
-    public function installments(float $principal, float $ratePercent, int $months, string $method, CarbonImmutable $disbursedOn): array
+    /**
+     * $installmentRounding: the installment is rounded UP to a multiple of this (1 = whole TZS,
+     * 1000 = next 1,000, as in the MASI Excel sheet). $interestRounding: each month's interest is
+     * rounded to the NEAREST multiple of this (1 = whole TZS, 100 = nearest 100). Either way the
+     * last installment is whatever is actually left, so total principal always equals the loan.
+     */
+    public function installments(float $principal, float $ratePercent, int $months, string $method, CarbonImmutable $disbursedOn, int $installmentRounding = 1, int $interestRounding = 1): array
     {
         $dueDates = $this->dueDates($disbursedOn, $months);
 
         return $method === LoanType::METHOD_FIXED
-            ? $this->fixedInstallments($principal, $ratePercent, $months, $dueDates)
-            : $this->reducingInstallments($principal, $ratePercent, $months, $dueDates);
+            ? $this->fixedInstallments($principal, $ratePercent, $months, $dueDates, $installmentRounding, $interestRounding)
+            : $this->reducingInstallments($principal, $ratePercent, $months, $dueDates, $installmentRounding, $interestRounding);
     }
 
-    public function totalInterest(float $principal, float $ratePercent, int $months, string $method): float
+    public function totalInterest(float $principal, float $ratePercent, int $months, string $method, int $installmentRounding = 1, int $interestRounding = 1): float
     {
         if ($method === LoanType::METHOD_FIXED) {
-            return (float) round($principal * $ratePercent / 100);
+            return $this->roundTo($principal * $ratePercent / 100, $interestRounding);
         }
 
-        $rows = $this->reducingInstallments($principal, $ratePercent, $months, $this->dueDates(CarbonImmutable::now(), $months));
+        $rows = $this->reducingInstallments($principal, $ratePercent, $months, $this->dueDates(CarbonImmutable::now(), $months), $installmentRounding, $interestRounding);
 
         return array_sum(array_column($rows, 'interest'));
     }
 
+    /** Round to the nearest multiple of $step (whole TZS when $step <= 1). */
+    private function roundTo(float $value, int $step): float
+    {
+        return $step <= 1 ? (float) round($value) : (float) (round($value / $step) * $step);
+    }
+
+    /** Round UP to a multiple of $step (plain whole-TZS rounding when $step <= 1). */
+    private function roundUpTo(float $value, int $step): float
+    {
+        // round(…, 6) first so float noise like 942000.0000001 doesn't jump to the next step.
+        return $step <= 1 ? (float) round($value) : (float) (ceil(round($value, 6) / $step) * $step);
+    }
+
     /**
-     * Installment 1 is due on the last day of the month after the disbursement month, then
-     * the last day of each following month.
+     * Due dates run monthly from the day the loan was released: released 10 Jan -> due 10 Feb,
+     * 10 Mar, ... Each date is counted from the release date itself (not from the previous due
+     * date), so a loan released on the 31st is due on the 28th/29th in February and back on the
+     * 31st in March.
      *
      * @return array<int, CarbonImmutable>
      */
     private function dueDates(CarbonImmutable $disbursedOn, int $months): array
     {
         $dates = [];
-        $cursor = $disbursedOn;
 
-        for ($i = 0; $i < $months; $i++) {
-            // addMonthNoOverflow() avoids skipping ahead when the day-of-month doesn't exist in
-            // the next month; re-snapping to that month's own end avoids it staying clamped on
-            // the earlier day number for every month after that (e.g. Jan 31 -> Feb 28 -> Mar 28).
-            $cursor = $cursor->addMonthNoOverflow()->startOfMonth()->endOfMonth();
-            $dates[] = $cursor;
+        for ($i = 1; $i <= $months; $i++) {
+            $dates[] = $disbursedOn->startOfDay()->addMonthsNoOverflow($i);
         }
 
         return $dates;
@@ -61,23 +77,26 @@ class LoanCalculator
      * @param  array<int, CarbonImmutable>  $dueDates
      * @return array<int, array{number: int, due_date: CarbonImmutable, principal: float, interest: float, amount: float}>
      */
-    private function reducingInstallments(float $principal, float $ratePercent, int $months, array $dueDates): array
+    private function reducingInstallments(float $principal, float $ratePercent, int $months, array $dueDates, int $installmentRounding = 1, int $interestRounding = 1): array
     {
         $rate = $ratePercent / 100;
 
-        $installmentAmount = $rate > 0
-            ? (float) round($principal * $rate / (1 - (1 + $rate) ** -$months))
-            : (float) round($principal / $months);
+        $installmentAmount = $this->roundUpTo(
+            $rate > 0 ? $principal * $rate / (1 - (1 + $rate) ** -$months) : $principal / $months,
+            $installmentRounding,
+        );
 
         $outstanding = $principal;
         $rows = [];
 
         for ($number = 1; $number <= $months; $number++) {
-            $interest = (float) round($outstanding * $rate);
+            $interest = $this->roundTo($outstanding * $rate, $interestRounding);
 
             if ($number < $months) {
-                $principalPart = $installmentAmount - $interest;
-                $amount = $installmentAmount;
+                // Never take more principal than is left (only possible with coarse rounding on a
+                // tiny loan).
+                $principalPart = min($installmentAmount - $interest, $outstanding);
+                $amount = $principalPart + $interest;
             } else {
                 // Last installment absorbs any rounding: its principal is exactly whatever
                 // balance remains, so total principal across the schedule equals $principal.
@@ -103,13 +122,13 @@ class LoanCalculator
      * @param  array<int, CarbonImmutable>  $dueDates
      * @return array<int, array{number: int, due_date: CarbonImmutable, principal: float, interest: float, amount: float}>
      */
-    private function fixedInstallments(float $principal, float $ratePercent, int $months, array $dueDates): array
+    private function fixedInstallments(float $principal, float $ratePercent, int $months, array $dueDates, int $installmentRounding = 1, int $interestRounding = 1): array
     {
-        $totalInterest = (float) round($principal * $ratePercent / 100);
+        $totalInterest = $this->roundTo($principal * $ratePercent / 100, $interestRounding);
         $totalPayable = $principal + $totalInterest;
 
-        $baseAmount = (float) round($totalPayable / $months);
-        $baseInterest = (float) round($totalInterest / $months);
+        $baseAmount = $this->roundUpTo($totalPayable / $months, $installmentRounding);
+        $baseInterest = $this->roundTo($totalInterest / $months, $interestRounding);
 
         $amountRunning = 0.0;
         $interestRunning = 0.0;
@@ -117,8 +136,8 @@ class LoanCalculator
 
         for ($number = 1; $number <= $months; $number++) {
             if ($number < $months) {
-                $amount = $baseAmount;
-                $interest = $baseInterest;
+                $amount = min($baseAmount, $totalPayable - $amountRunning);
+                $interest = min($baseInterest, $totalInterest - $interestRunning, $amount);
             } else {
                 $amount = $totalPayable - $amountRunning;
                 $interest = $totalInterest - $interestRunning;

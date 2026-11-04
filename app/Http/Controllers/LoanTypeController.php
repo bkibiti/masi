@@ -67,6 +67,8 @@ class LoanTypeController extends Controller
             'interest_rate' => 'required|numeric|min:0',
             'duration_months' => 'required|integer|min:1',
             'interest_method' => ['required', Rule::in(LoanType::INTEREST_METHODS)],
+            'installment_rounding' => ['nullable', Rule::in(array_keys(LoanType::INSTALLMENT_ROUNDING_OPTIONS))],
+            'interest_rounding' => ['nullable', Rule::in(array_keys(LoanType::INTEREST_ROUNDING_OPTIONS))],
         ]);
 
         $rows = $calculator->installments(
@@ -75,6 +77,8 @@ class LoanTypeController extends Controller
             (int) $data['duration_months'],
             $data['interest_method'],
             CarbonImmutable::now(),
+            (int) ($data['installment_rounding'] ?? 1),
+            (int) ($data['interest_rounding'] ?? 1),
         );
 
         return response()->json([
@@ -112,7 +116,14 @@ class LoanTypeController extends Controller
             'min_duration_months' => [...$termRules, 'integer', 'min:1'],
             'max_duration_months' => [...$termRules, 'integer', 'gte:min_duration_months'],
             'penalty_percent' => [...$termRules, 'numeric', 'min:0', 'max:100'],
+            // Rounding stays editable even when the type is in use: it is copied onto each loan
+            // at application, so changing it only affects loans applied for afterwards.
+            'installment_rounding' => ['required', Rule::in(array_keys(LoanType::INSTALLMENT_ROUNDING_OPTIONS))],
+            'interest_rounding' => ['required', Rule::in(array_keys(LoanType::INTEREST_ROUNDING_OPTIONS))],
         ]);
+
+        $data['installment_rounding'] = (int) $data['installment_rounding'];
+        $data['interest_rounding'] = (int) $data['interest_rounding'];
 
         $data['is_active'] = $request->boolean('is_active');
 

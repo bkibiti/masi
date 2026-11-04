@@ -13,7 +13,7 @@ class ContributionSetting extends Model
 {
     protected $table = 'contribution_settings';
 
-    protected $fillable = ['name', 'start_date', 'end_date', 'monthly_amount', 'penalty_percent', 'notes'];
+    protected $fillable = ['name', 'start_date', 'end_date', 'monthly_amount', 'penalty_percent', 'penalties_start_on', 'notes'];
 
     protected function casts(): array
     {
@@ -22,6 +22,7 @@ class ContributionSetting extends Model
             'end_date' => 'date',
             'monthly_amount' => 'decimal:2',
             'penalty_percent' => 'decimal:2',
+            'penalties_start_on' => 'date',
         ];
     }
 
@@ -72,6 +73,6 @@ class ContributionSetting extends Model
      */
     public function penaltyForFullMonth(): int
     {
-        return (int) round((float) $this->monthly_amount * (float) $this->penalty_percent / 100);
+        return (int) round((float) $this->monthly_amount * (float) $this->penalty_percent / 100, -2);
     }
 }
