@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One member's guarantee of part of another member's loan. Accepted/declined by staff on the
- * guarantor's behalf (no member portal yet) via recordGuarantorResponse() on LoanService.
+ * One member's guarantee of part of another member's loan. Accepted/declined via
+ * LoanService::recordGuarantorResponse(), either by the guarantor themselves (My Account)
+ * or by staff on their behalf.
  */
 class LoanGuarantor extends Model
 {

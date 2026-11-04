@@ -109,8 +109,9 @@ class LoanService
     }
 
     /**
-     * Accept or decline a guarantee on the guarantor's behalf (no member portal yet), and
-     * re-evaluate whether the loan can move to/from the Loan Officer.
+     * Accept or decline a guarantee — called from the guarantor's own My Account screen, or
+     * by staff on their behalf — and re-evaluate whether the loan can move to/from the Loan
+     * Officer.
      */
     public function recordGuarantorResponse(LoanGuarantor $guarantor, string $status, ?User $recordedBy, ?string $notes = null): LoanGuarantor
     {
@@ -145,6 +146,8 @@ class LoanService
         if ($loan->status !== Loan::STATUS_PENDING_APPROVAL) {
             throw ValidationException::withMessages(['status' => 'Only a loan pending approval can be approved.']);
         }
+
+        $this->guardAgainstSelfDealing($loan, $officer, 'approve');
 
         $finalAmount = $approvedAmount ?? (float) $loan->requested_amount;
         $finalMonths = $approvedMonths ?? $loan->requested_duration_months;
@@ -235,6 +238,8 @@ class LoanService
             throw ValidationException::withMessages(['status' => 'Only an approved loan can be disbursed.']);
         }
 
+        $this->guardAgainstSelfDealing($loan, $treasurer, 'disburse');
+
         return DB::transaction(function () use ($loan, $treasurer, $disbursedOn, $paymentMethodId, $reference, $notes) {
             $disbursedOnDate = CarbonImmutable::parse($disbursedOn);
 
@@ -271,6 +276,27 @@ class LoanService
 
             return $loan;
         });
+    }
+
+    /**
+     * A Loan Officer/Treasurer who is also a member cannot approve or disburse their own
+     * loan, or one they are guaranteeing.
+     */
+    private function guardAgainstSelfDealing(Loan $loan, User $actingUser, string $action): void
+    {
+        $actingMember = $actingUser->member;
+
+        if ($actingMember === null) {
+            return;
+        }
+
+        if ((int) $actingMember->id === (int) $loan->member_id) {
+            throw ValidationException::withMessages(['status' => "You cannot {$action} your own loan."]);
+        }
+
+        if ($loan->guarantors()->where('guarantor_member_id', $actingMember->id)->exists()) {
+            throw ValidationException::withMessages(['status' => "You cannot {$action} a loan you are guaranteeing."]);
+        }
     }
 
     private function transition(Loan $loan, string $toStatus, ?User $actingUser, ?string $note): void

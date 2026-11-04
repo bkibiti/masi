@@ -11,8 +11,21 @@
 @endsection
 
 @section("content")
+@if (session('temp_password'))
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <strong>Temporary password for {{ session('temp_password_username') }}:</strong>
+            <code class="fs-5">{{ session('temp_password') }}</code>
+            &mdash; share it with {{ $member->name }} now. It will not be shown again; they must change it at first login.
+        </div>
+    </div>
+@endif
+
 {{-- Actions --}}
 <div class="col-12 d-flex justify-content-end gap-2 mb-3">
+    @can('Manage Members')
+        @include('members._login_actions', ['member' => $member, 'linkableUsers' => $linkableUsers])
+    @endcan
     @can('Record Payments')
         <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#record-payment"
             data-member-id="{{ $member->id }}" data-member-name="{{ $member->name }}">

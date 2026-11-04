@@ -16,6 +16,9 @@
             <h3 class="card-title">Members</h3>
             <div class="card-tools">
                 @can('Manage Members')
+                    <a href="{{ route('members.login.bulk-create') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-people"></i> Create logins for members without one
+                    </a>
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#create-member">
                         <i class="bi bi-plus-lg"></i> Add Member
                     </button>
@@ -31,6 +34,7 @@
                             <th>Name</th>
                             <th>Mobile</th>
                             <th>Email</th>
+                            <th>Login</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -40,6 +44,7 @@
                                 <td>{{ $m->name }}</td>
                                 <td>{{ $m->phone }}</td>
                                 <td>{{ $m->email }}</td>
+                                <td>@include('members._login_badge', ['member' => $m])</td>
                                 <td style="white-space: nowrap">
                                     <a href="{{ route('members.show', $m) }}" class="btn btn-info btn-sm">View</a>
                                     @can('Manage Members')

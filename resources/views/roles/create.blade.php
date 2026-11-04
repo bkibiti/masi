@@ -70,12 +70,9 @@
 
                 </div>
                 <hr>
-                <div class="row mb-3">
-                        <div class="col-sm-8"></div>
-                        <a href="{{route('roles.index')}}">
-                                <button type="button" class="btn btn-danger">Back</button>
-                        </a>
-                        <button type="submit" class="btn btn-primary">Save</button>
+                <div class="d-flex justify-content-end gap-2">
+                        <a href="{{route('roles.index')}}" class="btn btn-outline-secondary px-4">Back</a>
+                        <button type="submit" class="btn btn-primary px-4">Save</button>
                 </div>
 
             </div>

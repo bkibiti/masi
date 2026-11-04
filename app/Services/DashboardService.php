@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\ContributionSetting;
+use App\Models\LoanGuarantor;
+use App\Models\Member;
 use App\Models\MemberDue;
 use App\Models\MemberPenalty;
 use App\Models\Payment;
@@ -240,5 +242,48 @@ class DashboardService
             ->latest('id')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * The "My summary" row shown above the group dashboard to a user linked to a member
+     * (spec section 4): their own arrears, current-month status, active loan balance and
+     * next installment, and pending guarantee requests.
+     *
+     * @return array<string, mixed>
+     */
+    public function mySummary(Member $member): array
+    {
+        $today = $this->today();
+        $currentPeriod = $today->startOfMonth()->toDateString();
+
+        $dueIds = $member->dues()->pluck('id');
+
+        $feeArrears = (float) MemberDue::whereIn('id', $dueIds)
+            ->where('due_date', '<', $today->toDateString())
+            ->selectRaw('COALESCE(SUM(amount - amount_paid), 0) as total')
+            ->value('total');
+
+        $penaltyArrears = (float) MemberPenalty::whereIn('member_due_id', $dueIds)
+            ->selectRaw('COALESCE(SUM(amount - amount_paid), 0) as total')
+            ->value('total');
+
+        $currentDue = $member->dues()->whereDate('period', $currentPeriod)->first();
+        $currentMonthStatus = match (true) {
+            $currentDue === null => 'No due this month',
+            $currentDue->balance() <= 0 => 'Paid',
+            default => 'Unpaid',
+        };
+
+        $activeLoan = $member->activeLoan();
+        $nextInstallment = $activeLoan?->installments->first(fn ($i) => ! $i->isFullyPaid());
+
+        return [
+            'arrears' => $feeArrears + $penaltyArrears,
+            'current_month_status' => $currentMonthStatus,
+            'active_loan' => $activeLoan,
+            'active_loan_balance' => $activeLoan?->outstandingBalance(),
+            'next_installment' => $nextInstallment,
+            'pending_guarantees' => $member->guarantees()->where('status', LoanGuarantor::STATUS_PENDING)->count(),
+        ];
     }
 }

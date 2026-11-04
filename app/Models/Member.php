@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Member extends Model
@@ -13,6 +14,42 @@ class Member extends Model
     protected $table = 'members';
 
     protected $fillable = ['name', 'phone', 'email', 'created_by', 'updated_by'];
+
+    /**
+     * The login linked to this member, if the admin has created or linked one. Set via the
+     * member login-management actions, never through the member create/edit form.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Accepts 0712345678, 712345678, 255712345678 or +255712345678 and returns the
+     * canonical 255712345678 form stored in `phone`, or null if it isn't a 9-digit TZ number.
+     */
+    public static function normalizePhone(?string $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D/', '', $raw);
+
+        if (str_starts_with($digits, '255') && strlen($digits) === 12) {
+            return $digits;
+        }
+
+        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
+            return '255'.substr($digits, 1);
+        }
+
+        if (strlen($digits) === 9) {
+            return '255'.$digits;
+        }
+
+        return null;
+    }
 
     public function dues(): HasMany
     {

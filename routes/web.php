@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ConfigurationsController;
 use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ContributionSettingController;
@@ -9,6 +10,11 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LoanTypeController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberLoginController;
+use App\Http\Controllers\MyGuaranteeController;
+use App\Http\Controllers\MyLoanController;
+use App\Http\Controllers\MyProfileController;
+use App\Http\Controllers\MyStatementController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentTypeController;
@@ -16,6 +22,8 @@ use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\EnsurePasswordIsNotExpired;
+use App\Http\Middleware\EnsureUserIsLinkedToMember;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -25,15 +33,49 @@ Route::redirect('/', '/home');
 
 Auth::routes(['register' => false]);
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', EnsurePasswordIsNotExpired::class])->group(function () {
 
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+
+    // Forced password change (temporary passwords from member-login creation/reset)
+    Route::get('account/force-password', [AccountController::class, 'forcePasswordForm'])->name('account.force-password');
+    Route::post('account/force-password', [AccountController::class, 'forcePasswordUpdate'])->name('account.force-password.update');
+
+    // My Account (spec section 3) - always scoped to auth()->user()->member
+    Route::middleware(EnsureUserIsLinkedToMember::class)->prefix('account')->name('account.')->group(function () {
+        Route::get('statement', [MyStatementController::class, 'index'])->name('statement');
+        Route::get('statement/pdf', [MyStatementController::class, 'pdf'])->name('statement.pdf');
+
+        Route::get('loans', [MyLoanController::class, 'index'])->name('loans.index');
+        Route::get('loans/create', [MyLoanController::class, 'create'])->name('loans.create');
+        Route::get('loans/preview', [MyLoanController::class, 'preview'])->name('loans.preview');
+        Route::post('loans', [MyLoanController::class, 'store'])->name('loans.store');
+        Route::get('loans/{loan}', [MyLoanController::class, 'show'])->name('loans.show');
+        Route::post('loans/{loan}/cancel', [MyLoanController::class, 'cancel'])->name('loans.cancel');
+
+        Route::get('guarantees', [MyGuaranteeController::class, 'index'])->name('guarantees.index');
+        Route::post('guarantees/{guarantor}/accept', [MyGuaranteeController::class, 'accept'])->name('guarantees.accept');
+        Route::post('guarantees/{guarantor}/decline', [MyGuaranteeController::class, 'decline'])->name('guarantees.decline');
+
+        Route::get('profile', [MyProfileController::class, 'edit'])->name('profile');
+        Route::put('profile', [MyProfileController::class, 'update'])->name('profile.update');
+        Route::post('profile/password', [MyProfileController::class, 'updatePassword'])->name('profile.password');
+    });
 
     // Members (wanachama)
     Route::get('members', [MemberController::class, 'index'])->name('members.index')->middleware('can:View Members');
     Route::get('members/{member}', [MemberController::class, 'show'])->name('members.show')->middleware('can:View Members');
     Route::post('members', [MemberController::class, 'store'])->name('members.store')->middleware('can:Manage Members');
     Route::put('members/{member}', [MemberController::class, 'update'])->name('members.update')->middleware('can:Manage Members');
+
+    // Member login management (staff side of linking members and users)
+    Route::get('members/login/bulk-create', [MemberLoginController::class, 'bulkCreateForm'])->name('members.login.bulk-create')->middleware('can:Manage Members');
+    Route::post('members/login/bulk-create', [MemberLoginController::class, 'bulkCreateStore'])->name('members.login.bulk-create.store')->middleware('can:Manage Members');
+    Route::post('members/{member}/login', [MemberLoginController::class, 'create'])->name('members.login.create')->middleware('can:Manage Members');
+    Route::post('members/{member}/login/link', [MemberLoginController::class, 'link'])->name('members.login.link')->middleware('can:Manage Members');
+    Route::post('members/{member}/login/reset-password', [MemberLoginController::class, 'resetPassword'])->name('members.login.reset-password')->middleware('can:Manage Members');
+    Route::post('members/{member}/login/disable', [MemberLoginController::class, 'disable'])->name('members.login.disable')->middleware('can:Manage Members');
+    Route::post('members/{member}/login/enable', [MemberLoginController::class, 'enable'])->name('members.login.enable')->middleware('can:Manage Members');
 
     // Contribution settings (Masters)
     Route::get('masters/contribution-settings', [ContributionSettingController::class, 'index'])->name('contribution-settings.index')->middleware('can:View Contribution Settings');
@@ -86,18 +128,18 @@ Route::middleware(['auth'])->group(function () {
     // Expense Categories routes
     Route::resource('masters/expense-categories', ExpenseCategoryController::class)->only([
         'index', 'store', 'update', 'destroy',
-    ]);
+    ])->middleware('can:View Expense Categories');
 
     // reminder routes
-    Route::resource('reminders', ReminderController::class);
+    Route::resource('reminders', ReminderController::class)->middleware('can:View Reminders');
 
     // Configurations Routes
     Route::get('/configurations', [ConfigurationsController::class, 'index'])->name('configurations.index')->middleware('can:View Settings');
     Route::post('/configurations', [ConfigurationsController::class, 'update'])->name('configurations.update')->middleware('can:View Settings');
 
     // Reports
-    Route::get('reports/index', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('reports/report', [ReportController::class, 'getReport'])->name('reports.getreport');
+    Route::get('reports/index', [ReportController::class, 'index'])->name('reports.index')->middleware('can:View Reports');
+    Route::get('reports/report', [ReportController::class, 'getReport'])->name('reports.getreport')->middleware('can:View Reports');
 
     /* expense routes */
     Route::get('expense-management/expenses', [ExpenseController::class, 'index'])->name('expense.index');
@@ -107,22 +149,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('expense-management/expense-search', [ExpenseController::class, 'search'])->name('expense.search');
 
     // user roles
-    Route::get('user-roles', [RoleController::class, 'index'])->name('roles.index');
-    Route::get('user-roles/create', [RoleController::class, 'create'])->name('roles.create');
-    Route::post('user-roles', [RoleController::class, 'store'])->name('roles.store');
-    Route::get('user-roles/{id}/edit', [RoleController::class, 'edit'])->name('roles.edit');
-    Route::post('user-roles/update', [RoleController::class, 'update'])->name('roles.update');
-    Route::delete('user-roles/delete', [RoleController::class, 'destroy'])->name('roles.destroy');
+    Route::get('user-roles', [RoleController::class, 'index'])->name('roles.index')->middleware('can:View Roles');
+    Route::get('user-roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('can:Manage Roles');
+    Route::post('user-roles', [RoleController::class, 'store'])->name('roles.store')->middleware('can:Manage Roles');
+    Route::get('user-roles/{id}/edit', [RoleController::class, 'edit'])->name('roles.edit')->middleware('can:Manage Roles');
+    Route::post('user-roles/update', [RoleController::class, 'update'])->name('roles.update')->middleware('can:Manage Roles');
+    Route::delete('user-roles/delete', [RoleController::class, 'destroy'])->name('roles.destroy')->middleware('can:Manage Roles');
 
     // users routes
-    Route::get('users', [UserController::class, 'index'])->name('users.index');
-    Route::post('users/register', [UserController::class, 'store'])->name('users.register');
-    Route::post('users/update', [UserController::class, 'update'])->name('users.update');
-    Route::put('users/delete', [UserController::class, 'delete'])->name('users.delete');
-    Route::post('users/de-actiavate', [UserController::class, 'deActivate'])->name('users.deactivate');
+    Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('can:View Users');
+    Route::post('users/register', [UserController::class, 'store'])->name('users.register')->middleware('can:Manage Users');
+    Route::post('users/update', [UserController::class, 'update'])->name('users.update')->middleware('can:Manage Users');
+    Route::put('users/delete', [UserController::class, 'delete'])->name('users.delete')->middleware('can:Manage Users');
+    Route::post('users/de-actiavate', [UserController::class, 'deActivate'])->name('users.deactivate')->middleware('can:Manage Users');
+    // Self-service (any authenticated user, their own password/profile only): no permission gate.
     Route::post('users/change-password', [UserController::class, 'changePassword'])->name('change-password');
     Route::get('users/change-password', [UserController::class, 'changePasswordForm'])->name('change-pass-form');
     Route::post('user-profile/update', [UserController::class, 'updateProfile'])->name('update-profile');
-    Route::get('users/search', [UserController::class, 'search'])->name('users.search');
+    Route::get('users/search', [UserController::class, 'search'])->name('users.search')->middleware('can:View Users');
 
 });

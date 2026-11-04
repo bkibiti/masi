@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
+use App\Models\User;
 use App\Services\ContributionLedger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,21 +14,25 @@ class MemberController extends Controller
 {
     public function index(): View
     {
-        $members = Member::query()->orderBy('name')->get();
+        $members = Member::query()->with('user')->orderBy('name')->get();
 
         return view('members.index', compact('members'));
     }
 
     public function show(Request $request, Member $member, ContributionLedger $ledger): View
     {
+        $member->load('user');
         $year = (int) $request->query('year', now()->year);
         $statement = $ledger->statementForMember($member, $year);
         $payments = $member->payments()->with(['recorder', 'paymentType', 'paymentMethod'])->latest('paid_on')->latest('id')->get();
         $years = range(now()->year - 2, now()->year + 1);
         $loans = $member->loans()->with('loanType')->get();
         $guarantees = $member->guarantees()->with('loan.member')->get();
+        $linkableUsers = $member->user_id === null
+            ? User::whereDoesntHave('member')->orderBy('name')->get()
+            : collect();
 
-        return view('members.show', compact('member', 'statement', 'year', 'years', 'payments', 'loans', 'guarantees'));
+        return view('members.show', compact('member', 'statement', 'year', 'years', 'payments', 'loans', 'guarantees', 'linkableUsers'));
     }
 
     public function store(Request $request): RedirectResponse

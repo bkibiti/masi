@@ -142,6 +142,51 @@
     </form>
 </div>
 
+{{-- My summary --}}
+@if ($mySummary)
+    <div class="col-12 mb-3">
+        <div class="card dashboard-card">
+            <div class="card-header"><h6 class="mb-0">My summary</h6></div>
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="dashboard-label">My arrears</div>
+                        <div class="fs-5 fw-bold {{ $mySummary['arrears'] > 0 ? 'text-danger' : '' }}">TZS {{ formatAmount($mySummary['arrears']) }}</div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="dashboard-label">This month</div>
+                        <div class="fs-5 fw-bold">{{ $mySummary['current_month_status'] }}</div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="dashboard-label">Active loan balance</div>
+                        <div class="fs-5 fw-bold">
+                            @if ($mySummary['active_loan'])
+                                TZS {{ formatAmount($mySummary['active_loan_balance']) }}
+                                @if ($mySummary['next_installment'])
+                                    <div class="small text-body-secondary fw-normal">Next due {{ $mySummary['next_installment']->due_date->format('j M Y') }}</div>
+                                @endif
+                            @else
+                                &mdash;
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="dashboard-label">Guarantee requests</div>
+                        <div class="fs-5 fw-bold">{{ $mySummary['pending_guarantees'] }}</div>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <a href="{{ route('account.statement') }}" class="small">My Statement</a>
+                    &middot;
+                    <a href="{{ route('account.loans.index') }}" class="small">My Loans</a>
+                    &middot;
+                    <a href="{{ route('account.guarantees.index') }}" class="small">Guarantee Requests</a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 {{-- Summary cards --}}
 <div class="col-sm-6 col-xl-4 mb-3">
     <div class="card dashboard-card">

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Member;
 use App\Services\DashboardService;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
@@ -21,21 +20,14 @@ class HomeController extends Controller
     }
 
     /**
-     * The post-login landing page. Users with "View Dashboard" see the admin dashboard;
-     * everyone else keeps the plain landing page, so this stays the universal redirect
-     * target for every role without 403-ing anyone who hasn't been granted it yet.
+     * The post-login landing page: the group dashboard, read-only, for every logged-in user
+     * (every role now holds "View Dashboard"). A user linked to a member also gets a "My
+     * summary" row above it.
      */
     public function index(Request $request, DashboardService $dashboard): Renderable
     {
-        if (! auth()->user()->can('View Dashboard')) {
-            $stats = [
-                'members' => Member::query()->count(),
-            ];
-
-            return view('home', compact('stats'));
-        }
-
         $year = (int) $request->query('year', now()->year);
+        $member = $request->user()->member;
 
         return view('dashboard', [
             'year' => $year,
@@ -46,6 +38,7 @@ class HomeController extends Controller
             'chart' => $dashboard->monthlyChart($year),
             'currentMonth' => $dashboard->currentMonthPanel(),
             'recentPayments' => $dashboard->recentPayments(),
+            'mySummary' => $member ? $dashboard->mySummary($member) : null,
         ]);
     }
 }

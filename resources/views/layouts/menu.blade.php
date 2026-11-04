@@ -5,6 +5,9 @@
     $mastersActive = request()->routeIs('expense-categories.*', 'reminders.*', 'contribution-settings.*', 'payment-methods.*', 'payment-types.*', 'loan-types.*');
     $contributionsActive = request()->routeIs('contributions.*');
     $loansActive = request()->routeIs('loans.*');
+    $accountActive = request()->routeIs('account.*');
+    $myMember = auth()->user()->member;
+    $pendingGuaranteeCount = $myMember ? $myMember->guarantees()->where('status', \App\Models\LoanGuarantor::STATUS_PENDING)->count() : 0;
 @endphp
 
 <li class="nav-item">
@@ -13,6 +16,46 @@
         <p>Dashboard</p>
     </a>
 </li>
+
+@if ($myMember)
+    <li class="nav-item {{ $accountActive ? 'menu-open' : '' }}">
+        <a href="#" class="nav-link {{ $accountActive ? 'active' : '' }}">
+            <i class="nav-icon bi bi-person-circle"></i>
+            <p>My Account <i class="nav-arrow bi bi-chevron-right"></i></p>
+        </a>
+        <ul class="nav nav-treeview">
+            <li class="nav-item">
+                <a href="{{ route('account.statement') }}" class="nav-link {{ request()->routeIs('account.statement*') ? 'active' : '' }}">
+                    <i class="nav-icon bi bi-circle"></i>
+                    <p>My Statement</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('account.loans.index') }}" class="nav-link {{ request()->routeIs('account.loans.*') ? 'active' : '' }}">
+                    <i class="nav-icon bi bi-circle"></i>
+                    <p>My Loans</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('account.guarantees.index') }}" class="nav-link {{ request()->routeIs('account.guarantees.*') ? 'active' : '' }}">
+                    <i class="nav-icon bi bi-circle"></i>
+                    <p>
+                        Guarantee Requests
+                        @if ($pendingGuaranteeCount > 0)
+                            <span class="badge text-bg-warning">{{ $pendingGuaranteeCount }}</span>
+                        @endif
+                    </p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('account.profile') }}" class="nav-link {{ request()->routeIs('account.profile') ? 'active' : '' }}">
+                    <i class="nav-icon bi bi-circle"></i>
+                    <p>My Profile</p>
+                </a>
+            </li>
+        </ul>
+    </li>
+@endif
 
 @can('View Members')
     <li class="nav-item">

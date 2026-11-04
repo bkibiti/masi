@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Services\DashboardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Spatie\Permission\Models\Permission;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -34,14 +34,6 @@ class DashboardTest extends TestCase
         Carbon::setTestNow();
 
         parent::tearDown();
-    }
-
-    private function admin(): User
-    {
-        $user = User::factory()->create();
-        $user->givePermissionTo(Permission::create(['name' => 'View Dashboard', 'guard_name' => 'web']));
-
-        return $user;
     }
 
     private function payment(string $typeName, float $amount, string $paidOn): Payment
@@ -217,19 +209,42 @@ class DashboardTest extends TestCase
         $this->assertSame('2025-01-06', $recent->last()->paid_on->toDateString());
     }
 
-    public function test_g_a_user_without_the_permission_does_not_see_the_admin_dashboard(): void
+    /**
+     * Every role now holds "View Dashboard" (spec: linking members and users, section 4), so
+     * /home no longer gates the group dashboard behind a permission check - any logged-in
+     * user sees it.
+     */
+    public function test_g_every_logged_in_user_sees_the_group_dashboard(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get(route('home'));
 
         $response->assertOk();
-        $response->assertDontSee('Monthly fees: collected vs expected');
+        $response->assertSee('Monthly fees: collected vs expected');
     }
 
-    public function test_g_a_user_with_the_permission_sees_the_admin_dashboard(): void
+    public static function namedRolesProvider(): array
     {
-        $response = $this->actingAs($this->admin())->get(route('home'));
+        return [
+            'Member Login' => ['Member Login'],
+            'Loan Officer' => ['Loan Officer'],
+            'Treasurer' => ['Treasurer'],
+        ];
+    }
+
+    /**
+     * Spec (a): every role can view the dashboard - checked here for the three roles this
+     * task seeds. The migration also grants it to the pre-existing Superuser/Manager/Partners
+     * roles, which are not seeded in the test schema (see AppServiceProvider).
+     */
+    #[DataProvider('namedRolesProvider')]
+    public function test_a_a_user_with_a_seeded_role_sees_the_group_dashboard(string $role): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole($role);
+
+        $response = $this->actingAs($user)->get(route('home'));
 
         $response->assertOk();
         $response->assertSee('Monthly fees: collected vs expected');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Member;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -54,13 +55,41 @@ class LoginController extends Controller
     {
         $login = $request->input('username');
 
-        $field = (filter_var($login, FILTER_VALIDATE_EMAIL) || !Schema::hasColumn('users', 'username'))
+        $field = (filter_var($login, FILTER_VALIDATE_EMAIL) || ! Schema::hasColumn('users', 'username'))
             ? 'email'
             : 'username';
 
         return [
-            $field     => $login,
+            $field => $login,
             'password' => $request->input('password'),
+            'status' => 1,
         ];
+    }
+
+    /**
+     * The "username" box also accepts a member's mobile number, in any of the usual local
+     * formats. A disabled login (status = 0) is refused the same way a wrong password is.
+     */
+    protected function attemptLogin(Request $request)
+    {
+        $normalizedPhone = Member::normalizePhone($request->input('username'));
+
+        if ($normalizedPhone !== null) {
+            $userId = Member::where('phone', $normalizedPhone)->value('user_id');
+
+            if ($userId === null) {
+                return false;
+            }
+
+            return $this->guard()->attempt(
+                ['id' => $userId, 'password' => $request->input('password'), 'status' => 1],
+                $request->boolean('remember')
+            );
+        }
+
+        return $this->guard()->attempt(
+            $this->credentials($request),
+            $request->boolean('remember')
+        );
     }
 }
