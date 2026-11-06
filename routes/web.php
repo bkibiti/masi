@@ -6,10 +6,12 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ContributionSettingController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FineTypeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LoanTypeController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberFineController;
 use App\Http\Controllers\MemberLoginController;
 use App\Http\Controllers\MyGuaranteeController;
 use App\Http\Controllers\MyLoanController;
@@ -95,6 +97,17 @@ Route::middleware(['auth', EnsurePasswordIsNotExpired::class])->group(function (
     Route::put('masters/payment-types/{paymentType}', [PaymentTypeController::class, 'update'])->name('payment-types.update')->middleware('can:Manage Payment Types');
     Route::delete('masters/payment-types/{paymentType}', [PaymentTypeController::class, 'destroy'])->name('payment-types.destroy')->middleware('can:Manage Payment Types');
 
+    // Fine types (Masters)
+    Route::get('masters/fine-types', [FineTypeController::class, 'index'])->name('fine-types.index')->middleware('can:View Fine Types');
+    Route::post('masters/fine-types', [FineTypeController::class, 'store'])->name('fine-types.store')->middleware('can:Manage Fine Types');
+    Route::put('masters/fine-types/{fineType}', [FineTypeController::class, 'update'])->name('fine-types.update')->middleware('can:Manage Fine Types');
+    Route::delete('masters/fine-types/{fineType}', [FineTypeController::class, 'destroy'])->name('fine-types.destroy')->middleware('can:Manage Fine Types');
+
+    // Member fines (manual, lump-sum)
+    Route::post('members/fines', [MemberFineController::class, 'store'])->name('member-fines.store')->middleware('can:Manage Fines');
+    Route::put('members/fines/{memberFine}', [MemberFineController::class, 'update'])->name('member-fines.update')->middleware('can:Manage Fines');
+    Route::delete('members/fines/{memberFine}', [MemberFineController::class, 'destroy'])->name('member-fines.destroy')->middleware('can:Manage Fines');
+
     // Loan types (Masters)
     Route::get('masters/loan-types', [LoanTypeController::class, 'index'])->name('loan-types.index')->middleware('can:View Loan Types');
     Route::post('masters/loan-types', [LoanTypeController::class, 'store'])->name('loan-types.store')->middleware('can:Manage Loan Types');
@@ -115,6 +128,7 @@ Route::middleware(['auth', EnsurePasswordIsNotExpired::class])->group(function (
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject')->middleware('can:Approve Loans');
     Route::post('loans/{loan}/cancel', [LoanController::class, 'cancel'])->name('loans.cancel')->middleware('can:Manage Loans');
     Route::post('loans/{loan}/disburse', [LoanController::class, 'disburse'])->name('loans.disburse')->middleware('can:Disburse Loans');
+    Route::put('loans/{loan}/disbursement-date', [LoanController::class, 'updateDisbursementDate'])->name('loans.disbursement-date')->middleware('can:Disburse Loans');
 
     // Contributions: register + payments
     Route::get('contributions/register', [ContributionController::class, 'register'])->name('contributions.register')->middleware('can:View Contributions');

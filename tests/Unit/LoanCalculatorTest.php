@@ -26,7 +26,7 @@ class LoanCalculatorTest extends TestCase
             ['interest' => 13596.0, 'principal' => 164930.0, 'amount' => 178526.0],
             ['interest' => 10297.0, 'principal' => 168229.0, 'amount' => 178526.0],
             ['interest' => 6932.0, 'principal' => 171594.0, 'amount' => 178526.0],
-            ['interest' => 3500.0, 'principal' => 175024.0, 'amount' => 178524.0], // rounding on the last installment
+            ['interest' => 3500.0, 'principal' => 175026.0, 'amount' => 178526.0], // equal to the others
         ];
 
         foreach ($expected as $i => $row) {
@@ -40,7 +40,7 @@ class LoanCalculatorTest extends TestCase
             $this->assertLessThan($rows[$i - 1]['interest'], $rows[$i]['interest']);
         }
 
-        $this->assertSame(1_000_000.0, array_sum(array_column($rows, 'principal')));
+        $this->assertSame(1_000_002.0, array_sum(array_column($rows, 'principal'))); // 2 TZS rounding surplus
 
         // Due dates: monthly from the release date (released 15 Jan -> 15 Feb ... 15 Jul).
         $this->assertSame('2026-02-15', $rows[0]['due_date']->toDateString());
@@ -60,7 +60,7 @@ class LoanCalculatorTest extends TestCase
      * MASI Excel convention: installment rounded up to the next 1,000, interest to the nearest 100,
      * last installment = whatever is left. 3,500,000 at 3%/month over 4 months.
      */
-    public function test_excel_rounding_matches_the_masi_sheet_and_never_overcharges(): void
+    public function test_excel_rounding_matches_the_masi_sheet_with_equal_installments(): void
     {
         $calculator = new LoanCalculator;
 
@@ -70,7 +70,7 @@ class LoanCalculatorTest extends TestCase
             ['interest' => 105000.0, 'principal' => 837000.0, 'amount' => 942000.0],
             ['interest' => 79900.0, 'principal' => 862100.0, 'amount' => 942000.0],
             ['interest' => 54000.0, 'principal' => 888000.0, 'amount' => 942000.0],
-            ['interest' => 27400.0, 'principal' => 912900.0, 'amount' => 940300.0], // Excel shows 942,000 here and overcharges 1,700
+            ['interest' => 27400.0, 'principal' => 914600.0, 'amount' => 942000.0], // equal, exactly as in Excel
         ];
 
         foreach ($expected as $i => $row) {
@@ -79,7 +79,7 @@ class LoanCalculatorTest extends TestCase
             $this->assertSame($row['amount'], $rows[$i]['amount'], "installment {$rows[$i]['number']} amount");
         }
 
-        $this->assertSame(3_500_000.0, array_sum(array_column($rows, 'principal')));
+        $this->assertSame(3_501_700.0, array_sum(array_column($rows, 'principal'))); // as in Excel
         $this->assertSame(266_300.0, array_sum(array_column($rows, 'interest')));
     }
 

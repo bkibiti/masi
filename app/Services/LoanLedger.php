@@ -100,7 +100,7 @@ class LoanLedger
                 $state['model']->update(['amount_paid' => $state['amount_paid']]);
             }
 
-            $this->syncCompletionStatus($loan, $this->outstandingFromState($installmentsState, $penaltiesState));
+            $this->syncCompletionStatus($loan, $this->outstandingFromState($installmentsState, $penaltiesState), $payments->max('paid_on'));
         });
     }
 
@@ -237,19 +237,30 @@ class LoanLedger
         return array_sum(array_map(fn ($s) => max(0.0, $s['amount'] - $s['amount_paid']), $penaltiesState));
     }
 
-    private function syncCompletionStatus(Loan $loan, float $outstanding): void
+    private function syncCompletionStatus(Loan $loan, float $outstanding, $lastPaidOn = null): void
     {
         $fullyPaid = $outstanding <= 0.0;
 
+        // A loan is completed on the date of the payment that cleared it (not the day it was typed in).
+        $completedAt = $lastPaidOn ? CarbonImmutable::parse($lastPaidOn)->setTime(12, 0) : CarbonImmutable::now();
+
         if ($fullyPaid && $loan->status === Loan::STATUS_DISBURSED) {
-            $loan->update(['status' => Loan::STATUS_COMPLETED, 'completed_at' => now()]);
-            LoanStatusHistory::create([
+            $loan->update(['status' => Loan::STATUS_COMPLETED, 'completed_at' => $completedAt]);
+            $history = LoanStatusHistory::create([
                 'loan_id' => $loan->id,
                 'from_status' => Loan::STATUS_DISBURSED,
                 'to_status' => Loan::STATUS_COMPLETED,
                 'changed_by' => null,
                 'note' => 'Fully paid.',
             ]);
+            $history->forceFill(['created_at' => $completedAt, 'updated_at' => $completedAt])->saveQuietly();
+        } elseif ($fullyPaid && $loan->status === Loan::STATUS_COMPLETED) {
+            // Keep the completion date in step with the payments (e.g. a back-dated payment).
+            if ($loan->completed_at?->toDateString() !== $completedAt->toDateString()) {
+                $loan->update(['completed_at' => $completedAt]);
+            }
+            LoanStatusHistory::where('loan_id', $loan->id)->where('from_status', Loan::STATUS_DISBURSED)->where('to_status', Loan::STATUS_COMPLETED)
+                ->latest('id')->first()?->forceFill(['created_at' => $completedAt, 'updated_at' => $completedAt])->saveQuietly();
         } elseif (! $fullyPaid && $loan->status === Loan::STATUS_COMPLETED) {
             $loan->update(['status' => Loan::STATUS_DISBURSED, 'completed_at' => null]);
             LoanStatusHistory::create([

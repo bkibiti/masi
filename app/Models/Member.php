@@ -61,6 +61,11 @@ class Member extends Model
         return $this->hasMany(MemberPenalty::class);
     }
 
+    public function fines(): HasMany
+    {
+        return $this->hasMany(MemberFine::class)->orderBy('fined_on');
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class)->orderBy('paid_on')->orderBy('id');

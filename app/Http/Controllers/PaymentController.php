@@ -116,7 +116,9 @@ class PaymentController extends Controller
             ? 'Payment recorded. TZS '.number_format($split['fine']).' went to unpaid fines first and TZS '.number_format($split['fee']).' to the monthly fee.'
             : 'Payment recorded.');
 
-        return redirect()->route('contributions.payments.index');
+        // Return to the page the payment was recorded from (member profile, loan page or the
+        // payments list), not always the payments list.
+        return back();
     }
 
     public function update(Request $request, Payment $payment, ContributionLedger $ledger, LoanLedger $loanLedger): RedirectResponse

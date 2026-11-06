@@ -175,6 +175,12 @@ class Loan extends Model
         return $lastDueDate ? CarbonImmutable::parse($lastDueDate) : null;
     }
 
+    /** Everything the member pays on this loan: all installments (principal + interest) plus loan penalties. */
+    public function totalPayable(): float
+    {
+        return (float) $this->installments->sum('amount') + (float) $this->penalties->sum('amount');
+    }
+
     public function outstandingBalance(): float
     {
         $installmentBalance = (float) $this->installments->sum(fn (LoanInstallment $i) => $i->balance());

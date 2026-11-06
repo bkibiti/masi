@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FineType;
 use App\Models\Loan;
 use App\Models\LoanInstallment;
 use App\Models\LoanPenalty;
 use App\Models\Member;
 use App\Models\MemberDue;
+use App\Models\MemberFine;
 use App\Models\MemberPenalty;
+use App\Models\Payment;
 use App\Models\PaymentType;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use App\Services\ContributionLedger;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -41,20 +45,24 @@ class MemberController extends Controller
             : collect();
         $summary = $this->summary($member, $payments, $statement);
 
-        // Penalties tab: every contribution penalty charged (all years), plus loan penalties.
-        $penaltyRecords = $member->penalties()->with('due.setting')
-            ->orderByDesc('charged_on')->orderByDesc('member_due_id')->get(); // newest first
+        // Penalties tab: every automatic penalty and manual fine charged (all years), merged into
+        // one list, newest first, plus loan penalties.
+        $feeChargeRecords = $ledger->feeCharges($member);
         $loanPenaltyRecords = LoanPenalty::query()->whereIn('loan_id', $loans->pluck('id'))
             ->with('loan.loanType')->orderByDesc('charged_on')->get();
+        $fineTypes = FineType::where('is_active', true)->orderBy('name')->get();
 
-        return view('members.show', compact('member', 'statement', 'year', 'years', 'payments', 'loans', 'guarantees', 'linkableUsers', 'summary', 'penaltyRecords', 'loanPenaltyRecords'));
+        return view('members.show', compact(
+            'member', 'statement', 'year', 'years', 'payments', 'loans', 'guarantees', 'linkableUsers',
+            'summary', 'feeChargeRecords', 'loanPenaltyRecords', 'fineTypes'
+        ));
     }
 
     /**
      * Figures for the four summary cards: total paid, current loan, arrears (monthly fees and
      * penalties past due only) and the amount due by the end of the current month.
      *
-     * @param  \Illuminate\Support\Collection<int, \App\Models\Payment>  $payments
+     * @param  Collection<int, Payment>  $payments
      * @param  array<string, mixed>  $statement
      * @return array<string, mixed>
      */
@@ -74,10 +82,12 @@ class MemberController extends Controller
             'last_paid_on' => $payments->max('paid_on'),
         ];
 
-        // 2. Arrears: monthly fees past their due date + unpaid contribution penalties.
+        // 2. Arrears: monthly fees past their due date + unpaid contribution penalties + unpaid
+        // manual fines (always due immediately).
         $dues = $member->dues()->with('penalties')->get();
         $feesPastDue = (float) $dues->filter(fn (MemberDue $d) => $d->due_date->toDateString() < $today)->sum(fn (MemberDue $d) => $d->balance());
         $penaltiesUnpaid = (float) $dues->flatMap(fn (MemberDue $d) => $d->penalties)->sum(fn (MemberPenalty $p) => $p->balance());
+        $finesUnpaid = (float) $member->fines()->get()->sum(fn (MemberFine $f) => $f->balance());
         $currentMonthFee = (float) $dues->filter(fn (MemberDue $d) => $d->due_date->toDateString() >= $today && $d->due_date->toDateString() <= $monthEnd)->sum(fn (MemberDue $d) => $d->balance());
 
         // 3. Current loan: the released (active) loan, else one still in the approval workflow.
@@ -123,18 +133,19 @@ class MemberController extends Controller
         return [
             'paid' => $paid,
             'arrears' => [
-                'total' => $feesPastDue + $penaltiesUnpaid,
+                'total' => $feesPastDue + $penaltiesUnpaid + $finesUnpaid,
                 'fees' => $feesPastDue,
                 'penalties' => $penaltiesUnpaid,
+                'fines' => $finesUnpaid,
                 'credit' => (float) ($statement['credit'] ?? 0),
             ],
             'loan' => $loanSummary,
             'due' => [
                 'month_end' => CarbonImmutable::now()->endOfMonth(),
-                'arrears' => $feesPastDue + $penaltiesUnpaid,
+                'arrears' => $feesPastDue + $penaltiesUnpaid + $finesUnpaid,
                 'current_fee' => $currentMonthFee,
                 'loan' => $loanDueByMonthEnd,
-                'total' => $feesPastDue + $penaltiesUnpaid + $currentMonthFee + $loanDueByMonthEnd,
+                'total' => $feesPastDue + $penaltiesUnpaid + $finesUnpaid + $currentMonthFee + $loanDueByMonthEnd,
                 'next_after' => $nextAfter,
             ],
         ];

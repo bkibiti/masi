@@ -18,8 +18,8 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Approval date <span class="text-danger">*</span></label>
-                    <input type="date" name="approved_on" class="form-control" min="{{ $loan->applied_at?->toDateString() }}" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
-                    <div class="form-text">Use an earlier date only when recording a loan that was already approved.</div>
+                    <input type="date" name="approved_on" class="form-control" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
+                    <div class="form-text">Use an earlier date only when recording a loan that was already approved. If it is earlier than the application date ({{ $loan->applied_at?->format('j M Y') }}), the application date moves back to it.</div>
                 </div>
             </div>
             <div class="modal-footer">

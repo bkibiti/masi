@@ -18,8 +18,9 @@ class LoanCalculator
     /**
      * $installmentRounding: the installment is rounded UP to a multiple of this (1 = whole TZS,
      * 1000 = next 1,000, as in the MASI Excel sheet). $interestRounding: each month's interest is
-     * rounded to the NEAREST multiple of this (1 = whole TZS, 100 = nearest 100). Either way the
-     * last installment is whatever is actually left, so total principal always equals the loan.
+     * rounded to the NEAREST multiple of this (1 = whole TZS, 100 = nearest 100). All installments
+     * are equal, as in the MASI Excel sheet, so rounding can make total principal slightly exceed
+     * the loan (e.g. 3,500,000 at 3% over 4 months: 4 x 942,000, principal 3,501,700).
      */
     public function installments(float $principal, float $ratePercent, int $months, string $method, CarbonImmutable $disbursedOn, int $installmentRounding = 1, int $interestRounding = 1): array
     {
@@ -98,10 +99,12 @@ class LoanCalculator
                 $principalPart = min($installmentAmount - $interest, $outstanding);
                 $amount = $principalPart + $interest;
             } else {
-                // Last installment absorbs any rounding: its principal is exactly whatever
-                // balance remains, so total principal across the schedule equals $principal.
-                $principalPart = $outstanding;
-                $amount = $principalPart + $interest;
+                // Like the MASI Excel sheet, the last installment is the same as the others, so
+                // all installments are equal; any rounding surplus counts as extra principal.
+                // (If rounding ever left it short of the balance, it is raised to clear the loan.)
+                // A tiny loan already cleared early by coarse rounding has nothing left to pay.
+                $amount = $outstanding > 0 ? max($installmentAmount, $outstanding + $interest) : 0.0;
+                $principalPart = $amount - $interest;
             }
 
             $outstanding -= $principalPart;
@@ -139,7 +142,9 @@ class LoanCalculator
                 $amount = min($baseAmount, $totalPayable - $amountRunning);
                 $interest = min($baseInterest, $totalInterest - $interestRunning, $amount);
             } else {
-                $amount = $totalPayable - $amountRunning;
+                // Equal installments like the Excel sheet: the last is the same as the others
+                // (raised only if needed to clear the loan); any surplus counts as principal.
+                $amount = max($baseAmount, $totalPayable - $amountRunning);
                 $interest = $totalInterest - $interestRunning;
             }
 

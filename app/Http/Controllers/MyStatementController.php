@@ -63,6 +63,7 @@ class MyStatementController extends Controller
             'penalties_owed' => (float) $penaltyTotals->owed,
             'next_due' => $nextDue,
             'payments' => $payments,
+            'feeChargeRecords' => $ledger->feeCharges($member),
         ];
     }
 }

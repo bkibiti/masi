@@ -1595,3 +1595,26 @@ table.dataTable tbody tr:hover {
 .card:has(> .card-header > .card-header-tabs) .tab-content {
     padding-top: 12px;
 }
+
+/* ---------- Tab counts (e.g. Loans tabs): coloured circles like notification badges ---------- */
+.tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    margin-left: 8px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    color: #FFFFFF;
+}
+.tab-count-primary   { background-color: #1F3A68; }
+.tab-count-info      { background-color: #0B7BC1; }
+.tab-count-warning   { background-color: #E08A00; }
+.tab-count-danger    { background-color: #D32F2F; }
+.tab-count-success   { background-color: #2E7D32; }
+.tab-count-secondary { background-color: #6C757D; }
+.tab-count-zero      { background-color: #E4E7EE; color: #6B7488; }

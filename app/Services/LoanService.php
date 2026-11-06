@@ -154,9 +154,10 @@ class LoanService
 
         $approvedAt = $this->workflowDate($approvedOn);
 
-        if ($loan->applied_at && $approvedAt->toDateString() < $loan->applied_at->toDateString()) {
-            throw ValidationException::withMessages(['approved_on' => 'The approval date cannot be before the application date ('.$loan->applied_at->format('j M Y').').']);
-        }
+        // Backlog entry: a loan approved before the date its application was typed in. The
+        // application can't come after its approval, so move the application date back to the
+        // approval date (and its history entry with it).
+        $this->moveEarlierStepsBack($loan, $approvedAt);
 
         $this->guardAgainstSelfDealing($loan, $officer, 'approve');
 
@@ -251,12 +252,11 @@ class LoanService
 
         $this->guardAgainstSelfDealing($loan, $treasurer, 'disburse');
 
-        if ($loan->approved_at && $disbursedOn < $loan->approved_at->toDateString()) {
-            throw ValidationException::withMessages(['disbursed_on' => 'The disbursement date cannot be before the approval date ('.$loan->approved_at->format('j M Y').').']);
-        }
-
         return DB::transaction(function () use ($loan, $treasurer, $disbursedOn, $paymentMethodId, $reference, $notes) {
             $disbursedOnDate = CarbonImmutable::parse($disbursedOn);
+
+            // Backlog entry: released before the approval/application dates that were typed in.
+            $this->moveEarlierStepsBack($loan, $disbursedOnDate->setTime(12, 0));
 
             $rows = $this->calculator->installments(
                 $loan->effectiveAmount(),
@@ -289,7 +289,7 @@ class LoanService
                 'disbursement_notes' => $notes,
             ]);
 
-            $this->recordHistory($loan, Loan::STATUS_APPROVED, Loan::STATUS_DISBURSED, $treasurer, null, $disbursedOnDate);
+            $this->recordHistory($loan, Loan::STATUS_APPROVED, Loan::STATUS_DISBURSED, $treasurer, null, $disbursedOnDate->setTime(12, 0));
 
             // A back-dated loan may already be past installments or its end date: work out its
             // standing (and any penalties) straight away instead of waiting for the daily refresh.
@@ -297,6 +297,68 @@ class LoanService
 
             return $loan;
         });
+    }
+
+    /**
+     * Correct the release date of a loan already released (e.g. a backlog loan entered with the
+     * wrong date). Installment amounts stay the same; due dates move to run monthly from the new
+     * release date, and penalties/status are recalculated.
+     */
+    public function changeDisbursementDate(Loan $loan, User $user, string $disbursedOn): Loan
+    {
+        if (! in_array($loan->status, [Loan::STATUS_DISBURSED, Loan::STATUS_COMPLETED], true)) {
+            throw ValidationException::withMessages(['disbursed_on' => 'Only a released loan has a release date to correct.']);
+        }
+
+        $date = CarbonImmutable::parse($disbursedOn)->startOfDay();
+        if ($date->toDateString() > now()->toDateString()) {
+            throw ValidationException::withMessages(['disbursed_on' => 'The release date cannot be in the future.']);
+        }
+
+        return DB::transaction(function () use ($loan, $user, $date) {
+            $old = $loan->disbursed_on?->format('j M Y');
+
+            $this->moveEarlierStepsBack($loan, $date->setTime(12, 0));
+
+            foreach ($loan->installments()->orderBy('number')->get() as $installment) {
+                $installment->update(['due_date' => $date->addMonthsNoOverflow((int) $installment->number)->toDateString()]);
+            }
+
+            $loan->update(['disbursed_on' => $date->toDateString()]);
+
+            LoanStatusHistory::where('loan_id', $loan->id)->where('to_status', Loan::STATUS_DISBURSED)
+                ->get()->each(fn ($h) => $h->forceFill(['created_at' => $date->setTime(12, 0), 'updated_at' => $date->setTime(12, 0)])->saveQuietly());
+
+            if ($old !== $date->format('j M Y')) {
+                $this->recordHistory($loan, $loan->status, $loan->status, $user, 'Release date corrected from '.$old.' to '.$date->format('j M Y').'.');
+            }
+
+            app(LoanLedger::class)->rebuildForLoan($loan->refresh());
+
+            return $loan;
+        });
+    }
+
+    /**
+     * Steps can't happen after the step that follows them: when a later step is dated earlier
+     * (backlog entry), move the application and approval dates (and their history entries) back.
+     */
+    private function moveEarlierStepsBack(Loan $loan, CarbonImmutable $at): void
+    {
+        if ($loan->approved_at && $at->toDateString() < $loan->approved_at->toDateString()) {
+            $loan->update(['approved_at' => $at]);
+        }
+
+        if ($loan->applied_at && $at->toDateString() < $loan->applied_at->toDateString()) {
+            $loan->update(['applied_at' => $at]);
+        }
+
+        // Keep the timeline in order too: application and approval entries dated after this step.
+        LoanStatusHistory::where('loan_id', $loan->id)
+            ->where(fn ($q) => $q->whereNull('from_status')->orWhereIn('to_status', [Loan::STATUS_APPROVED, Loan::STATUS_PENDING_APPROVAL, Loan::STATUS_PENDING_GUARANTORS]))
+            ->whereDate('created_at', '>', $at->toDateString())
+            ->get()
+            ->each(fn ($h) => $h->forceFill(['created_at' => $at, 'updated_at' => $at])->saveQuietly());
     }
 
     /**

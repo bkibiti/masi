@@ -76,7 +76,7 @@
                         </select>
                     </div>
                     <div class="col-12 small text-muted">
-                        The last installment is always reduced to what is actually left, so the member never repays more than the loan plus interest.
+                        All installments are equal. Because of rounding, the last one can be slightly more than what is left, so the member may repay a little extra principal (as in the group's Excel sheet).
                         Rounding changes apply to loans applied for after you save.
                     </div>
                     <div class="col-12">

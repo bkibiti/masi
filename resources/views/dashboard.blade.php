@@ -217,7 +217,7 @@
         <div class="card-body">
             <div class="dashboard-label">Outstanding arrears</div>
             <div class="dashboard-figure text-danger">TZS {{ formatAmount($arrears['total']) }}</div>
-            <div class="text-body-secondary small">TZS {{ formatAmount($arrears['fees']) }} fees + TZS {{ formatAmount($arrears['penalties']) }} penalties</div>
+            <div class="text-body-secondary small">TZS {{ formatAmount($arrears['fees']) }} fees + TZS {{ formatAmount($arrears['penalties']) }} penalties + TZS {{ formatAmount($arrears['fines']) }} fines</div>
         </div>
     </div>
 </div>

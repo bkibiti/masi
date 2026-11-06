@@ -82,6 +82,11 @@
     <div class="card text-center"><div class="card-body">
         <div class="text-body-secondary small text-uppercase">Disbursed on</div>
         <div class="fs-5 fw-bold">{{ $loan->disbursed_on?->format('j M Y') ?? '—' }}</div>
+        @can('Disburse Loans')
+            @if (in_array($loan->status, ['disbursed', 'completed']))
+                <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#change-release-date">Correct date</button>
+            @endif
+        @endcan
     </div></div>
 </div>
 <div class="col-md-3 mb-3">
@@ -273,6 +278,29 @@
 @endcan
 @can('Disburse Loans')
     @include('loans._disburse_form', ['loan' => $loan, 'paymentMethods' => $paymentMethods])
+    @if (in_array($loan->status, ['disbursed', 'completed']))
+        <div class="modal fade" id="change-release-date" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('loans.disbursement-date', $loan) }}" class="modal-content">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header">
+                        <h5 class="modal-title">Correct release date</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label" for="corrected-disbursed-on">Released on <span class="text-danger">*</span></label>
+                        <input type="date" id="corrected-disbursed-on" name="disbursed_on" class="form-control" max="{{ now()->toDateString() }}" value="{{ $loan->disbursed_on?->toDateString() }}" required>
+                        <div class="form-text">Installment amounts stay the same. Due dates move to run monthly from this date, and penalties and status are recalculated. The application and approval dates move back if they are later.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save date</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 @endcan
 @can('Record Loan Repayments')
     @if ($loan->status === 'disbursed')

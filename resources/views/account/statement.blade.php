@@ -67,6 +67,9 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-payments" type="button" role="tab">Payment history</button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-fines" type="button" role="tab">Fines</button>
+                </li>
             </ul>
         </div>
         <div class="card-body p-0">
@@ -106,6 +109,36 @@
                                     </tr>
                                 @empty
                                     <tr><td colspan="5" class="text-muted p-3">No payments recorded yet.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade p-0" id="tab-fines" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Reason</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Paid</th>
+                                    <th class="text-end">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($feeChargeRecords as $charge)
+                                    <tr>
+                                        <td>{{ $charge->date->format('j M Y') }}</td>
+                                        <td>{{ $charge->type_label }}</td>
+                                        <td>{{ $charge->reason ?: '—' }}</td>
+                                        <td class="text-end">{{ formatAmount($charge->amount) }}</td>
+                                        <td class="text-end">{{ formatAmount($charge->amount_paid) }}</td>
+                                        <td class="text-end {{ $charge->balance > 0 ? 'text-danger fw-semibold' : '' }}">{{ formatAmount($charge->balance) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="6" class="text-muted p-3">No fines charged.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

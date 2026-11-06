@@ -37,10 +37,22 @@
     <div class="card">
         <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                @php
+                    $tabColors = [
+                        'pending_guarantors' => 'warning',
+                        'pending_approval' => 'warning',
+                        'approved' => 'info',
+                        'active' => 'primary',
+                        'overdue' => 'danger',
+                        'completed' => 'success',
+                        'rejected_cancelled' => 'secondary',
+                    ];
+                @endphp
                 @foreach ($tabs as $key => $label)
                     <li class="nav-item">
-                        <a class="nav-link {{ $tab === $key ? 'active' : '' }}" href="{{ route('loans.index', array_filter(['tab' => $key, 'member_id' => $memberId, 'loan_type_id' => $loanTypeId])) }}">
-                            {{ $label }} <span class="badge text-bg-light">{{ $counts[$key] }}</span>
+                        <a class="nav-link d-inline-flex align-items-center {{ $tab === $key ? 'active' : '' }}" href="{{ route('loans.index', array_filter(['tab' => $key, 'member_id' => $memberId, 'loan_type_id' => $loanTypeId])) }}">
+                            {{ $label }}
+                            <span class="tab-count tab-count-{{ $counts[$key] > 0 ? ($tabColors[$key] ?? 'primary') : 'zero' }}">{{ $counts[$key] }}</span>
                         </a>
                     </li>
                 @endforeach
@@ -75,6 +87,7 @@
                             <th>Loan type</th>
                             <th class="text-end">Amount</th>
                             <th class="text-end">Duration</th>
+                            <th class="text-end">{{ $tab === 'completed' ? 'Total paid' : 'Total to pay' }}</th>
                             <th class="text-end">Outstanding</th>
                             <th>Applied</th>
                             <th></th>
@@ -87,6 +100,7 @@
                                 <td>{{ $loan->loanType->name }}</td>
                                 <td class="text-end">{{ formatAmount($loan->effectiveAmount()) }}</td>
                                 <td class="text-end">{{ $loan->effectiveDurationMonths() }} mo</td>
+                                <td class="text-end">{{ $loan->installments->isNotEmpty() ? formatAmount($loan->totalPayable()) : '—' }}</td>
                                 <td class="text-end">{{ formatAmount($loan->outstandingBalance()) }}</td>
                                 <td>{{ $loan->applied_at?->format('j M Y') }}</td>
                                 <td class="text-end">
@@ -94,7 +108,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="text-muted p-3">No loans in this tab.</td></tr>
+                            <tr><td colspan="8" class="text-muted p-3">No loans in this tab.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -32,6 +32,12 @@
             <i class="bi bi-cash-coin"></i> Record payment
         </button>
     @endcan
+    @can('Manage Fines')
+        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#fine-modal"
+            data-action="{{ route('member-fines.store') }}" data-method="POST" data-title="Add fine">
+            <i class="bi bi-exclamation-triangle"></i> Add fine
+        </button>
+    @endcan
 </div>
 
 {{-- Summary cards --}}
@@ -118,6 +124,7 @@
                     <div class="border-top pt-2 small d-flex flex-column gap-1">
                         <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid monthly fees</span><span class="fw-semibold">{{ $tzs($summary['arrears']['fees']) }}</span></div>
                         <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid penalties</span><span class="fw-semibold">{{ $tzs($summary['arrears']['penalties']) }}</span></div>
+                        <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid manual fines</span><span class="fw-semibold">{{ $tzs($summary['arrears']['fines']) }}</span></div>
                     </div>
                     <div class="small text-body-secondary mt-auto">Past due only · credit TZS {{ $tzs($summary['arrears']['credit']) }}</div>
                 </div></div>
@@ -231,8 +238,9 @@
 
                     <div class="tab-pane fade p-0" id="tab-penalties" role="tabpanel">
                         @php
-                            $penCharged = (float) $penaltyRecords->sum('amount');
-                            $penPaid = (float) $penaltyRecords->sum('amount_paid');
+                            $feeCharges = collect($feeChargeRecords);
+                            $penCharged = (float) $feeCharges->sum('amount');
+                            $penPaid = (float) $feeCharges->sum('amount_paid');
                         @endphp
                         <div class="d-flex flex-wrap gap-4 px-3 pt-3 pb-2 small">
                             <div><span class="text-body-secondary">Charged</span> <span class="fw-bold">TZS {{ formatAmount($penCharged) }}</span></div>
@@ -244,6 +252,7 @@
                                 <thead>
                                     <tr>
                                         <th>Charged on</th>
+                                        <th>Type</th>
                                         <th>For month</th>
                                         <th class="text-end">Unpaid fee (base)</th>
                                         <th class="text-end">Rate</th>
@@ -251,50 +260,76 @@
                                         <th class="text-end">Paid</th>
                                         <th class="text-end">Balance</th>
                                         <th>Status</th>
+                                        @can('Manage Fines')
+                                            <th></th>
+                                        @endcan
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse ($penaltyRecords as $penalty)
-                                        @php
-                                            $rate = (float) ($penalty->due?->setting?->penalty_percent ?? 0);
-                                            $base = $rate > 0 ? (float) $penalty->amount * 100 / $rate : null;
-                                        @endphp
+                                    @forelse ($feeCharges as $charge)
                                         <tr>
-                                            <td>{{ $penalty->charged_on->format('j M Y') }}</td>
-                                            <td>{{ $penalty->due?->period?->format('M Y') ?? '—' }}</td>
-                                            <td class="text-end">{{ $base !== null ? formatAmount($base) : '—' }}</td>
-                                            <td class="text-end">{{ rtrim(rtrim(number_format($rate, 2), '0'), '.') }}%</td>
-                                            <td class="text-end fw-semibold">{{ formatAmount($penalty->amount) }}</td>
-                                            <td class="text-end">{{ formatAmount($penalty->amount_paid) }}</td>
-                                            <td class="text-end {{ $penalty->balance() > 0 ? 'text-danger fw-semibold' : '' }}">{{ formatAmount($penalty->balance()) }}</td>
+                                            <td>{{ $charge->date->format('j M Y') }}</td>
                                             <td>
-                                                @if ($penalty->isFullyPaid())
+                                                {{ $charge->type_label }}
+                                                @if ($charge->kind === 'manual' && $charge->reason)
+                                                    <div class="small text-body-secondary">{{ $charge->reason }}</div>
+                                                @endif
+                                            </td>
+                                            <td>{{ $charge->for_month?->format('M Y') ?? '—' }}</td>
+                                            <td class="text-end">{{ $charge->base !== null ? formatAmount($charge->base) : '—' }}</td>
+                                            <td class="text-end">{{ $charge->rate !== null ? rtrim(rtrim(number_format($charge->rate, 2), '0'), '.').'%' : '—' }}</td>
+                                            <td class="text-end fw-semibold">{{ formatAmount($charge->amount) }}</td>
+                                            <td class="text-end">{{ formatAmount($charge->amount_paid) }}</td>
+                                            <td class="text-end {{ $charge->balance > 0 ? 'text-danger fw-semibold' : '' }}">{{ formatAmount($charge->balance) }}</td>
+                                            <td>
+                                                @if ($charge->is_fully_paid)
                                                     <span class="badge text-bg-success">Paid</span>
-                                                @elseif ((float) $penalty->amount_paid > 0)
+                                                @elseif ($charge->amount_paid > 0)
                                                     <span class="badge text-bg-warning">Partly paid</span>
                                                 @else
                                                     <span class="badge text-bg-danger">Unpaid</span>
                                                 @endif
                                             </td>
+                                            @can('Manage Fines')
+                                                <td class="text-end" style="white-space: nowrap">
+                                                    @if ($charge->kind === 'manual')
+                                                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#fine-modal"
+                                                            data-action="{{ route('member-fines.update', $charge->model) }}" data-method="PUT" data-title="Edit fine"
+                                                            data-fine-type-id="{{ $charge->model->fine_type_id }}" data-fined-on="{{ $charge->model->fined_on->toDateString() }}"
+                                                            data-amount="{{ $charge->model->amount }}" data-reason="{{ $charge->model->reason }}">
+                                                            Edit
+                                                        </button>
+                                                        <form method="POST" action="{{ route('member-fines.destroy', $charge->model) }}" class="d-inline"
+                                                            onsubmit="return confirm('Delete this fine?');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                                        </form>
+                                                    @endif
+                                                </td>
+                                            @endcan
                                         </tr>
                                     @empty
-                                        <tr><td colspan="8" class="text-muted p-3">No penalties charged.</td></tr>
+                                        <tr><td colspan="10" class="text-muted p-3">No penalties or fines charged.</td></tr>
                                     @endforelse
                                 </tbody>
-                                @if ($penaltyRecords->isNotEmpty())
+                                @if ($feeCharges->isNotEmpty())
                                     <tfoot>
                                         <tr class="fw-bold">
-                                            <td colspan="4">Total ({{ $penaltyRecords->count() }})</td>
+                                            <td colspan="5">Total ({{ $feeCharges->count() }})</td>
                                             <td class="text-end">{{ formatAmount($penCharged) }}</td>
                                             <td class="text-end">{{ formatAmount($penPaid) }}</td>
                                             <td class="text-end">{{ formatAmount($penCharged - $penPaid) }}</td>
                                             <td></td>
+                                            @can('Manage Fines')
+                                                <td></td>
+                                            @endcan
                                         </tr>
                                     </tfoot>
                                 @endif
                             </table>
                         </div>
-                        <div class="px-3 py-2 small text-body-secondary">One row per unpaid month on each charge date. The base is the part of that month's fee still unpaid when the penalty was charged.</div>
+                        <div class="px-3 py-2 small text-body-secondary">Automatic rows are one per unpaid month on each charge date; the base is the part of that month's fee still unpaid when the penalty was charged. Manual fines show the reason given.</div>
 
                         @can('View Loans')
                             @if ($loanPenaltyRecords->isNotEmpty())
@@ -372,6 +407,9 @@
 @endcan
 @can('Manage Payments')
     @include('contributions.payments._form', ['mode' => 'edit', 'members' => [$member]])
+@endcan
+@can('Manage Fines')
+    @include('members._fine_form', ['member' => $member, 'fineTypes' => $fineTypes])
 @endcan
 @endsection
 

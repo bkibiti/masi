@@ -6,6 +6,7 @@ use App\Models\ContributionSetting;
 use App\Models\LoanGuarantor;
 use App\Models\Member;
 use App\Models\MemberDue;
+use App\Models\MemberFine;
 use App\Models\MemberPenalty;
 use App\Models\Payment;
 use Carbon\CarbonImmutable;
@@ -113,10 +114,15 @@ class DashboardService
             ->selectRaw('COALESCE(SUM(amount - amount_paid), 0) as total')
             ->value('total');
 
+        $fines = (float) MemberFine::query()
+            ->selectRaw('COALESCE(SUM(amount - amount_paid), 0) as total')
+            ->value('total');
+
         return [
             'fees' => $fees,
             'penalties' => $penalties,
-            'total' => $fees + $penalties,
+            'fines' => $fines,
+            'total' => $fees + $penalties + $fines,
         ];
     }
 
@@ -267,6 +273,10 @@ class DashboardService
             ->selectRaw('COALESCE(SUM(amount - amount_paid), 0) as total')
             ->value('total');
 
+        $fineArrears = (float) MemberFine::where('member_id', $member->id)
+            ->selectRaw('COALESCE(SUM(amount - amount_paid), 0) as total')
+            ->value('total');
+
         $currentDue = $member->dues()->whereDate('period', $currentPeriod)->first();
         $currentMonthStatus = match (true) {
             $currentDue === null => 'No due this month',
@@ -278,7 +288,7 @@ class DashboardService
         $nextInstallment = $activeLoan?->installments->first(fn ($i) => ! $i->isFullyPaid());
 
         return [
-            'arrears' => $feeArrears + $penaltyArrears,
+            'arrears' => $feeArrears + $penaltyArrears + $fineArrears,
             'current_month_status' => $currentMonthStatus,
             'active_loan' => $activeLoan,
             'active_loan_balance' => $activeLoan?->outstandingBalance(),

@@ -102,6 +102,7 @@ class LoanController extends Controller
             $data['purpose'] ?? null,
             $data['guarantors'] ?? [],
             $request->user(),
+            $data['applied_on'] ?? null,
         );
 
         session()->flash('alert-success', 'Loan application recorded.');
@@ -202,6 +203,7 @@ class LoanController extends Controller
         $data = $request->validate([
             'approved_amount' => 'nullable|numeric|min:1',
             'approved_duration_months' => 'nullable|integer|min:1',
+            'approved_on' => 'nullable|date|before_or_equal:today',
         ]);
 
         $service->approve(
@@ -209,6 +211,7 @@ class LoanController extends Controller
             $request->user(),
             isset($data['approved_amount']) ? (float) $data['approved_amount'] : null,
             $data['approved_duration_months'] ?? null,
+            $data['approved_on'] ?? null,
         );
 
         session()->flash('alert-success', 'Loan approved.');
@@ -261,6 +264,19 @@ class LoanController extends Controller
         return back();
     }
 
+    public function updateDisbursementDate(Request $request, Loan $loan, LoanService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'disbursed_on' => 'required|date|before_or_equal:today',
+        ]);
+
+        $service->changeDisbursementDate($loan, $request->user(), $data['disbursed_on']);
+
+        session()->flash('alert-success', 'Release date corrected. Due dates and penalties were recalculated.');
+
+        return back();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -272,6 +288,7 @@ class LoanController extends Controller
             'requested_amount' => 'required|numeric|min:1',
             'requested_duration_months' => 'required|integer|min:1',
             'purpose' => 'nullable|string|max:1000',
+            'applied_on' => 'nullable|date|before_or_equal:today',
             'guarantors' => 'nullable|array',
             'guarantors.*.guarantor_member_id' => 'required_with:guarantors|exists:members,id',
             'guarantors.*.guaranteed_amount' => 'required_with:guarantors|numeric|min:1',

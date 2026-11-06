@@ -9,7 +9,7 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Disbursed on <span class="text-danger">*</span></label>
-                    <input type="date" name="disbursed_on" class="form-control" min="{{ $loan->approved_at?->toDateString() }}" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
+                    <input type="date" name="disbursed_on" class="form-control" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
                     <div class="form-text">For a loan already taken, use the date the money was actually released: the repayment schedule starts from it.</div>
                 </div>
                 <div class="mb-3">

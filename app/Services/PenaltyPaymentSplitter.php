@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Member;
+use App\Models\MemberFine;
 use App\Models\MemberPenalty;
 use App\Models\Payment;
 use App\Models\PaymentType;
@@ -10,7 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * MASI rule: when a member pays a monthly contribution and a fine from an earlier month is
- * still unpaid, the fine is paid first and only the rest counts as monthly fee.
+ * still unpaid - whether an automatic 5% penalty or a manual fine - the fine is paid first and
+ * only the rest counts as monthly fee.
  *
  * The ledger keeps fees and fines apart (monthly-fee payments pay fees, Fines / Penalties
  * payments pay fines), so this rule is applied by SPLITTING the payment record: the part that
@@ -61,18 +63,15 @@ class PenaltyPaymentSplitter
         for ($i = 0; $i < 500; $i++) {
             $this->ledger->rebuildForMember($member);
 
-            $oldest = MemberPenalty::where('member_id', $member->id)
-                ->whereColumn('amount_paid', '<', 'amount')
-                ->orderBy('charged_on')->orderBy('id')
-                ->first();
+            $oldestDate = $this->oldestUnpaidFineDate($member);
 
-            if (! $oldest) {
+            if (! $oldestDate) {
                 break;
             }
 
             $payment = Payment::where('member_id', $member->id)
                 ->whereHas('paymentType', fn ($q) => $q->where('ledger_role', PaymentType::ROLE_MONTHLY_FEE))
-                ->whereDate('paid_on', '>=', $oldest->charged_on->toDateString())
+                ->whereDate('paid_on', '>=', $oldestDate)
                 ->where('amount', '>', 0)
                 ->orderBy('paid_on')->orderBy('id')
                 ->first();
@@ -94,14 +93,46 @@ class PenaltyPaymentSplitter
         return $splits;
     }
 
-    /** Fines still unpaid (as currently allocated) that were charged on or before the payment's date. */
+    /**
+     * Fines still unpaid (as currently allocated) that were charged on or before the payment's
+     * date - automatic penalties (charged_on) and manual fines (fined_on) alike.
+     */
     private function unpaidFinesOn(Payment $payment): float
     {
-        return (float) MemberPenalty::where('member_id', $payment->member_id)
+        $penalties = (float) MemberPenalty::where('member_id', $payment->member_id)
             ->whereColumn('amount_paid', '<', 'amount')
             ->whereDate('charged_on', '<=', $payment->paid_on->toDateString())
             ->get()
             ->sum(fn (MemberPenalty $p) => $p->balance());
+
+        $fines = (float) MemberFine::where('member_id', $payment->member_id)
+            ->whereColumn('amount_paid', '<', 'amount')
+            ->whereDate('fined_on', '<=', $payment->paid_on->toDateString())
+            ->get()
+            ->sum(fn (MemberFine $f) => $f->balance());
+
+        return $penalties + $fines;
+    }
+
+    /** The date of the oldest unpaid fine across automatic penalties and manual fines, or null if none. */
+    private function oldestUnpaidFineDate(Member $member): ?string
+    {
+        $oldestPenalty = MemberPenalty::where('member_id', $member->id)
+            ->whereColumn('amount_paid', '<', 'amount')
+            ->orderBy('charged_on')->orderBy('id')
+            ->first();
+
+        $oldestFine = MemberFine::where('member_id', $member->id)
+            ->whereColumn('amount_paid', '<', 'amount')
+            ->orderBy('fined_on')->orderBy('id')
+            ->first();
+
+        $dates = array_filter([
+            $oldestPenalty?->charged_on->toDateString(),
+            $oldestFine?->fined_on->toDateString(),
+        ]);
+
+        return empty($dates) ? null : min($dates);
     }
 
     /** @return array<string, mixed> */

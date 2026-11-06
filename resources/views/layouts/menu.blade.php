@@ -156,7 +156,7 @@
     </li>
 @endcanany
 
-@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings', 'View Payment Methods', 'View Payment Types', 'View Loan Types'])
+@canany(['View Masters', 'View Expense Categories', 'Manage Expense Categories', 'View Reminders', 'View Contribution Settings', 'View Payment Methods', 'View Payment Types', 'View Loan Types', 'View Fine Types'])
     <li class="nav-item {{ $mastersActive ? 'menu-open' : '' }}">
         <a href="#" class="nav-link {{ $mastersActive ? 'active' : '' }}">
             <i class="nav-icon bi bi-list-ul"></i>
@@ -200,6 +200,14 @@
                     <a href="{{ route('loan-types.index') }}" class="nav-link {{ request()->routeIs('loan-types.*') ? 'active' : '' }}">
                         <i class="nav-icon bi bi-circle"></i>
                         <p>Loan Types</p>
+                    </a>
+                </li>
+            @endcan
+            @can('View Fine Types')
+                <li class="nav-item">
+                    <a href="{{ route('fine-types.index') }}" class="nav-link {{ request()->routeIs('fine-types.*') ? 'active' : '' }}">
+                        <i class="nav-icon bi bi-circle"></i>
+                        <p>Fine Types</p>
                     </a>
                 </li>
             @endcan
