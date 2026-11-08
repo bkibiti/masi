@@ -56,10 +56,12 @@ class LoanController extends Controller
 
         $rows = $grouped[$tab];
 
-        $totals = [
-            'disbursed' => $rows->sum(fn (Loan $l) => $l->effectiveAmount()),
-            'outstanding' => $rows->sum(fn (Loan $l) => $l->outstandingBalance()),
-        ];
+        // Overview at the top of the page (respects the member / loan type filters and the year).
+        $overviewYear = $request->query('year', 'all');
+        $overviewYear = $overviewYear === 'all' ? null : (int) $overviewYear;
+        $overviewService = app(\App\Services\LoanOverviewService::class);
+        $overview = $overviewService->build($loans, $overviewYear);
+        $overviewYears = $loans->pluck('disbursed_on')->filter()->map(fn ($d) => $d->year)->unique()->sortDesc()->values();
 
         $counts = array_map(fn ($c) => $c->count(), $grouped);
 
@@ -71,7 +73,10 @@ class LoanController extends Controller
             'tab' => $tab,
             'rows' => $rows,
             'counts' => $counts,
-            'totals' => $totals,
+            'overview' => $overview,
+            'overviewService' => $overviewService,
+            'overviewYear' => $overviewYear,
+            'overviewYears' => $overviewYears,
             'members' => $members,
             'loanTypes' => $loanTypes,
             'memberId' => $memberId,

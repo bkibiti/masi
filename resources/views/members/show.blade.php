@@ -74,19 +74,24 @@
 <div class="col-12 mb-3">
     <div class="row g-3">
         @can('View Contributions')
-            {{-- Total amount paid --}}
+            {{-- Total contributed (loan repayments shown separately, not included) --}}
             <div class="col-md-6 col-xl-3">
                 <div class="card h-100 mb-0"><div class="card-body d-flex flex-column gap-2">
-                    <div class="{{ $label }}" style="letter-spacing: .05em">Total amount paid</div>
-                    <div class="fs-4 fw-bold">TZS {{ $tzs($summary['paid']['total']) }}</div>
+                    <div class="{{ $label }}" style="letter-spacing: .05em">Total contributed</div>
+                    <div class="fs-4 fw-bold">TZS {{ $tzs($summary['paid']['contributed']) }}</div>
                     <div class="border-top pt-2 small d-flex flex-column gap-1">
                         <div class="d-flex justify-content-between"><span class="text-body-secondary">Monthly fees</span><span class="fw-semibold">{{ $tzs($summary['paid']['monthly_fees']) }}</span></div>
                         <div class="d-flex justify-content-between"><span class="text-body-secondary">Fines / penalties</span><span class="fw-semibold">{{ $tzs($summary['paid']['fines']) }}</span></div>
-                        <div class="d-flex justify-content-between"><span class="text-body-secondary">Loan repayments</span><span class="fw-semibold">{{ $tzs($summary['paid']['loans']) }}</span></div>
                         @if ($summary['paid']['other'] > 0)
                             <div class="d-flex justify-content-between"><span class="text-body-secondary">Other</span><span class="fw-semibold">{{ $tzs($summary['paid']['other']) }}</span></div>
                         @endif
                     </div>
+                    @if ($summary['paid']['loans'] > 0)
+                        <div class="small d-flex justify-content-between border-top pt-2">
+                            <span class="text-body-secondary">Loan repayments </span>
+                            <span>{{ $tzs($summary['paid']['loans']) }}</span>
+                        </div>
+                    @endif
                     <div class="small text-body-secondary mt-auto">All years{{ $summary['paid']['last_paid_on'] ? ' · last payment '.\Carbon\Carbon::parse($summary['paid']['last_paid_on'])->format('j M Y') : '' }}</div>
                 </div></div>
             </div>
@@ -150,7 +155,7 @@
                     <div class="border-top pt-2 small d-flex flex-column gap-1">
                         <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid monthly fees</span><span class="fw-semibold">{{ $tzs($summary['arrears']['fees']) }}</span></div>
                         <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid penalties</span><span class="fw-semibold">{{ $tzs($summary['arrears']['penalties']) }}</span></div>
-                        <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid manual fines</span><span class="fw-semibold">{{ $tzs($summary['arrears']['fines']) }}</span></div>
+                        <div class="d-flex justify-content-between"><span class="text-body-secondary">Unpaid fines</span><span class="fw-semibold">{{ $tzs($summary['arrears']['fines']) }}</span></div>
                     </div>
                     <div class="small text-body-secondary mt-auto">Past due only · credit TZS {{ $tzs($summary['arrears']['credit']) }}</div>
                 </div></div>
@@ -165,7 +170,12 @@
                         <div class="d-flex justify-content-between"><span style="color: #C3C9DE">Arrears (overdue now)</span><span class="fw-semibold">{{ $tzs($summary['due']['arrears']) }}</span></div>
                         <div class="d-flex justify-content-between"><span style="color: #C3C9DE">{{ $summary['due']['month_end']->format('F') }} fee</span><span class="fw-semibold">{{ $tzs($summary['due']['current_fee']) }}</span></div>
                         @can('View Loans')
-                            <div class="d-flex justify-content-between"><span style="color: #C3C9DE">Loan due by {{ $summary['due']['month_end']->format('j M') }}</span><span class="fw-semibold">{{ $tzs($summary['due']['loan']) }}</span></div>
+                            @if ($summary['due']['loan_overdue'] > 0)
+                                <div class="d-flex justify-content-between"><span style="color: #C3C9DE">Loan overdue (due now)</span><span class="fw-semibold">{{ $tzs($summary['due']['loan_overdue']) }}</span></div>
+                            @endif
+                            @foreach ($summary['due']['loan_upcoming'] as $installment)
+                                <div class="d-flex justify-content-between"><span style="color: #C3C9DE">Loan installment due {{ $installment['due_date']->format('j M') }}</span><span class="fw-semibold">{{ $tzs($installment['amount']) }}</span></div>
+                            @endforeach
                         @endcan
                     </div>
                     @if ($summary['due']['next_after'])
