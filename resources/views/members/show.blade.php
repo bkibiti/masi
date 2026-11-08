@@ -21,8 +21,33 @@
     </div>
 @endif
 
-{{-- Actions --}}
-<div class="col-12 d-flex justify-content-end gap-2 mb-3">
+{{-- Member switcher + actions --}}
+<div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="{{ $previousMember ? route('members.show', ['member' => $previousMember, 'year' => $year]) : '#' }}"
+            class="btn btn-outline-secondary btn-sm {{ $previousMember ? '' : 'disabled' }}"
+            title="{{ $previousMember ? 'Previous: '.$previousMember->name : 'First member' }}" aria-label="Previous member">
+            <i class="bi bi-chevron-left"></i> Previous
+        </a>
+        <div style="min-width: 260px">
+            <select id="member-switcher" class="form-select form-select-sm" aria-label="Switch member">
+                @foreach ($allMembers as $m)
+                    <option value="{{ route('members.show', ['member' => $m, 'year' => $year]) }}" @selected($m->id === $member->id)>
+                        {{ $m->name }}{{ $m->phone ? ' · '.$m->phone : '' }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <a href="{{ $nextMember ? route('members.show', ['member' => $nextMember, 'year' => $year]) : '#' }}"
+            class="btn btn-outline-secondary btn-sm {{ $nextMember ? '' : 'disabled' }}"
+            title="{{ $nextMember ? 'Next: '.$nextMember->name : 'Last member' }}" aria-label="Next member">
+            Next <i class="bi bi-chevron-right"></i>
+        </a>
+        @if ($memberPosition)
+            <span class="small text-body-secondary">{{ $memberPosition }} of {{ $allMembers->count() }}</span>
+        @endif
+    </div>
+    <div class="d-flex flex-wrap justify-content-end gap-2">
     @can('Manage Members')
         @include('members._login_actions', ['member' => $member, 'linkableUsers' => $linkableUsers])
     @endcan
@@ -38,6 +63,7 @@
             <i class="bi bi-exclamation-triangle"></i> Add fine
         </button>
     @endcan
+    </div>
 </div>
 
 {{-- Summary cards --}}
@@ -417,6 +443,17 @@
     @include('partials.notification')
     <script>
         document.title = document.title.concat(" | " + @json($member->name));
+
+        // Member switcher: type a name or phone, pick, and go straight to that member.
+        $(function () {
+            const $switcher = $('#member-switcher');
+            $switcher.select2({ width: '100%', placeholder: 'Switch member…' });
+            $switcher.on('change', function () {
+                if (this.value && this.value !== window.location.href) {
+                    window.location.href = this.value;
+                }
+            });
+        });
 
         @if ($errors->any() && old('_modal'))
             // Reopen the form that failed validation

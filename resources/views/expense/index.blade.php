@@ -90,6 +90,9 @@ Expense
                     @include('partials.date_filter', ['resetRoute' => 'expense.index'])
                 </div>
             </form>
+            @if ($latestOnly)
+                <div class="small text-body-secondary">Showing the latest {{ $Expenses->count() }} expenses. Use the filter to see a date range or category.</div>
+            @endif
     <hr>
             <div class="table-responsive">
                 <table id="fixed-header1" class="display table nowrap table-striped table-hover" style="width:100%">
@@ -152,7 +155,7 @@ Expense
             @if ($total > 0)
                 
                 <div class="row mb-3">
-                    <div class="col-md-2"> <h6> Total Expenses</h6></div>
+                    <div class="col-md-2"> <h6> Total {{ $latestOnly ? '(latest '.$Expenses->count().')' : 'Expenses' }}</h6></div>
                     <div class="col-md-2">
                         <h6>{{number_format($total,2)}}</h6>
                     </div>
@@ -180,6 +183,8 @@ Expense
 
     $('#fixed-header1').DataTable({
       bAutoWidth: true,
+      pageLength: 15,
+      lengthMenu: [15, 25, 50, 100],
       order: [[0, "desc"]]
     });
 

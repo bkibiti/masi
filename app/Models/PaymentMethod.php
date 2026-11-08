@@ -30,6 +30,7 @@ class PaymentMethod extends Model
 
     public function isInUse(): bool
     {
-        return $this->payments()->withTrashed()->exists();
+        return $this->payments()->withTrashed()->exists()
+            || OtherIncome::withTrashed()->where('payment_method_id', $this->id)->exists();
     }
 }

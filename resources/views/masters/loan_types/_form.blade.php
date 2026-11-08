@@ -10,7 +10,7 @@
             </div>
             <div class="modal-body">
                 <div id="type-locked-notice" class="alert alert-secondary d-none">
-                    This loan type has been used on a loan: its terms are locked (changing it would never affect existing loans anyway). You can still rename it or deactivate it.
+                    This loan type has been used on a loan: its interest method, rate and penalty are locked. You can still change the amount and duration limits, rounding, name and active status (these only apply to new applications).
                 </div>
                 <div class="row g-3">
                     <div class="col-md-8">
@@ -160,7 +160,7 @@
                 $form.find('.f-interest-rounding').val(String(b.data('interestRounding') ?? 100));
                 $form.find('.f-active').prop('checked', b.data('active') === undefined ? true : (b.data('active') === 1 || b.data('active') === '1'));
 
-                $form.find('.f-method, .f-rate, .f-min-amount, .f-max-amount, .f-min-months, .f-max-months, .f-penalty').prop('disabled', locked);
+                $form.find('.f-method, .f-rate, .f-penalty').prop('disabled', locked);
                 $modal.find('#type-locked-notice').toggleClass('d-none', ! locked);
 
                 updateExample($form);

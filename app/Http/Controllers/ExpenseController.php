@@ -14,24 +14,39 @@ class ExpenseController extends Controller
     private const LOCAL_TIMEZONE = 'Africa/Dar_es_Salaam';
 
     /**
-     * Expenses, filtered by date range (this month by default) and optionally by category.
+     * Expense history. With no filter it shows the latest 15 expenses (any date); with a date
+     * range or category filter it shows every matching expense.
      * Users without "View Advanced Dashboard" only see the expenses they recorded.
      */
     public function index(Request $request)
     {
-        [$fromDate, $toDate] = $this->historyDateRange($request);
-
         $expense_category = AccExpenseCategory::all();
-        $Expenses = Expense::visibleTo(Auth::user())
-            ->with(['category', 'user'])
-            ->whereDate('created_at', '>=', $fromDate)
-            ->whereDate('created_at', '<=', $toDate)
-            ->when($request->filled('expense_category') && $request->expense_category != 0, fn ($q) => $q->where('expense_category_id', $request->expense_category))
-            ->get();
+        $filtered = $request->filled('from_date') || $request->filled('to_date')
+            || ($request->filled('expense_category') && $request->expense_category != 0);
+
+        $query = Expense::visibleTo(Auth::user())->with(['category', 'user']);
+
+        if ($filtered) {
+            [$fromDate, $toDate] = $this->historyDateRange($request);
+            $Expenses = $query
+                ->whereDate('created_at', '>=', $fromDate)
+                ->whereDate('created_at', '<=', $toDate)
+                ->when($request->filled('expense_category') && $request->expense_category != 0, fn ($q) => $q->where('expense_category_id', $request->expense_category))
+                ->orderByDesc('created_at')
+                ->get();
+            $latestOnly = false;
+        } else {
+            $Expenses = $query->orderByDesc('created_at')->orderByDesc('id')->limit(15)->get();
+            $today = CarbonImmutable::now(self::LOCAL_TIMEZONE);
+            $oldest = $Expenses->last()?->created_at;
+            $fromDate = $oldest ? CarbonImmutable::parse($oldest)->setTimezone(self::LOCAL_TIMEZONE)->toDateString() : $today->startOfMonth()->toDateString();
+            $toDate = $today->toDateString();
+            $latestOnly = true;
+        }
 
         $total = $Expenses->sum('amount');
 
-        return view('expense.index', compact('expense_category', 'Expenses', 'total', 'fromDate', 'toDate'));
+        return view('expense.index', compact('expense_category', 'Expenses', 'total', 'fromDate', 'toDate', 'latestOnly'));
     }
 
     /**
@@ -147,15 +162,14 @@ class ExpenseController extends Controller
         $request->merge(['amount' => str_replace(',', '', (string) $request->amount)]);
 
         $todayDate = CarbonImmutable::now(self::LOCAL_TIMEZONE)->toDateString();
-        $minDate = CarbonImmutable::now(self::LOCAL_TIMEZONE)->subDays(31)->toDateString();
 
         $request->validate([
             'amount' => 'required|numeric|min:1',
             'expense_category_id' => 'required|exists:expense_categories,id',
             'expense_description' => 'required|max:200',
-            'date' => 'required|date_format:Y-m-d|before_or_equal:'.$todayDate.'|after_or_equal:'.$minDate,
+            'date' => 'required|date_format:Y-m-d|before_or_equal:'.$todayDate,
         ], [
-            'date.after_or_equal' => 'The date cannot be more than 31 days ago.',
+            'date.before_or_equal' => 'The date cannot be in the future.',
         ]);
 
         // Keep the current time of day when the expense is for today, otherwise record it at midday

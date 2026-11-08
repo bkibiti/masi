@@ -111,10 +111,12 @@ class LoanTypeController extends Controller
             'description' => 'nullable|string|max:255',
             'interest_method' => [...$termRules, Rule::in(LoanType::INTEREST_METHODS)],
             'interest_rate' => [...$termRules, 'numeric', 'min:0', 'max:100'],
-            'min_amount' => [...$termRules, 'numeric', 'min:0'],
-            'max_amount' => [...$termRules, 'numeric', 'gte:min_amount'],
-            'min_duration_months' => [...$termRules, 'integer', 'min:1'],
-            'max_duration_months' => [...$termRules, 'integer', 'gte:min_duration_months'],
+            // Amount and duration limits are only checked when a loan is applied for or approved,
+            // so they stay editable even when the type is in use.
+            'min_amount' => ['required', 'numeric', 'min:0'],
+            'max_amount' => ['required', 'numeric', 'gte:min_amount'],
+            'min_duration_months' => ['required', 'integer', 'min:1'],
+            'max_duration_months' => ['required', 'integer', 'gte:min_duration_months'],
             'penalty_percent' => [...$termRules, 'numeric', 'min:0', 'max:100'],
             // Rounding stays editable even when the type is in use: it is copied onto each loan
             // at application, so changing it only affects loans applied for afterwards.
@@ -130,10 +132,6 @@ class LoanTypeController extends Controller
         if ($locked) {
             $data['interest_method'] = $loanType->interest_method;
             $data['interest_rate'] = $loanType->interest_rate;
-            $data['min_amount'] = $loanType->min_amount;
-            $data['max_amount'] = $loanType->max_amount;
-            $data['min_duration_months'] = $loanType->min_duration_months;
-            $data['max_duration_months'] = $loanType->max_duration_months;
             $data['penalty_percent'] = $loanType->penalty_percent;
         }
 

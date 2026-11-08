@@ -53,7 +53,7 @@ class MyStatementController extends Controller
             ->orderBy('due_date')
             ->first();
 
-        $payments = $member->payments()->with(['paymentType', 'paymentMethod'])->latest('paid_on')->latest('id')->get();
+        $payments = $member->payments()->with(['paymentType', 'paymentMethod'])->reorder()->orderByDesc('paid_on')->orderByDesc('id')->get();
 
         return [
             'member' => $member,

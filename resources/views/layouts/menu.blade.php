@@ -120,6 +120,15 @@
     </li>
 @endcanany
 
+@can('View Other Income')
+    <li class="nav-item">
+        <a href="{{ route('other-income.index') }}" class="nav-link {{ request()->routeIs('other-income.*') ? 'active' : '' }}">
+            <i class="nav-icon bi bi-piggy-bank"></i>
+            <p>Other Income</p>
+        </a>
+    </li>
+@endcan
+
 @can('View Reports')
     <li class="nav-item">
         <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">

@@ -52,9 +52,17 @@ class MemberController extends Controller
             ->with('loan.loanType')->orderByDesc('charged_on')->get();
         $fineTypes = FineType::where('is_active', true)->orderBy('name')->get();
 
+        // Member switcher: every member A-Z, plus the previous / next member in that order.
+        $allMembers = Member::query()->orderBy('name')->orderBy('id')->get(['id', 'name', 'phone']);
+        $position = $allMembers->search(fn (Member $m) => $m->id === $member->id);
+        $previousMember = $position > 0 ? $allMembers[$position - 1] : null;
+        $nextMember = $position !== false && $position < $allMembers->count() - 1 ? $allMembers[$position + 1] : null;
+        $memberPosition = $position === false ? null : $position + 1;
+
         return view('members.show', compact(
             'member', 'statement', 'year', 'years', 'payments', 'loans', 'guarantees', 'linkableUsers',
-            'summary', 'feeChargeRecords', 'loanPenaltyRecords', 'fineTypes'
+            'summary', 'feeChargeRecords', 'loanPenaltyRecords', 'fineTypes',
+            'allMembers', 'previousMember', 'nextMember', 'memberPosition'
         ));
     }
 

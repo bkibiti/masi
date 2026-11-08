@@ -6,6 +6,7 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ContributionSettingController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\OtherIncomeController;
 use App\Http\Controllers\FineTypeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoanController;
@@ -161,6 +162,12 @@ Route::middleware(['auth', EnsurePasswordIsNotExpired::class])->group(function (
     Route::post('expense-management/expenses', [ExpenseController::class, 'store'])->name('expense.store');
     Route::post('expense-management/expense-update', [ExpenseController::class, 'update'])->name('expense.update');
     Route::get('expense-management/expense-search', [ExpenseController::class, 'search'])->name('expense.search');
+
+    /* other income (group income not belonging to a member) */
+    Route::get('other-income', [OtherIncomeController::class, 'index'])->name('other-income.index')->middleware('can:View Other Income');
+    Route::post('other-income', [OtherIncomeController::class, 'store'])->name('other-income.store')->middleware('can:Manage Other Income');
+    Route::put('other-income/{otherIncome}', [OtherIncomeController::class, 'update'])->name('other-income.update')->middleware('can:Manage Other Income');
+    Route::delete('other-income/{otherIncome}', [OtherIncomeController::class, 'destroy'])->name('other-income.destroy')->middleware('can:Manage Other Income');
 
     // user roles
     Route::get('user-roles', [RoleController::class, 'index'])->name('roles.index')->middleware('can:View Roles');

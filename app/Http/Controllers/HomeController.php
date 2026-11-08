@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\DashboardService;
+use App\Services\GroupStatusService;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 
@@ -20,25 +21,17 @@ class HomeController extends Controller
     }
 
     /**
-     * The post-login landing page: the group dashboard, read-only, for every logged-in user
-     * (every role now holds "View Dashboard"). A user linked to a member also gets a "My
-     * summary" row above it.
+     * The post-login landing page: the group status dashboard, read-only, for every logged-in
+     * user.
      */
-    public function index(Request $request, DashboardService $dashboard): Renderable
+    public function index(Request $request, DashboardService $dashboard, GroupStatusService $groupStatus): Renderable
     {
-        $year = (int) $request->query('year', now()->year);
-        $member = $request->user()->member;
+        $year = (int) $request->query('year', now('Africa/Dar_es_Salaam')->year);
 
         return view('dashboard', [
             'year' => $year,
             'years' => $dashboard->availableYears(),
-            'totals' => $dashboard->totalsCard($year),
-            'monthlyFees' => $dashboard->monthlyFeesCard($year),
-            'arrears' => $dashboard->arrearsCard(),
-            'chart' => $dashboard->monthlyChart($year),
-            'currentMonth' => $dashboard->currentMonthPanel(),
-            'recentPayments' => $dashboard->recentPayments(),
-            'mySummary' => $member ? $dashboard->mySummary($member) : null,
+            'status' => $groupStatus->build($year),
         ]);
     }
 }
