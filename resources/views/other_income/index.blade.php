@@ -31,11 +31,7 @@
             @endcan
         </div>
         <div class="card-body">
-            <p class="small text-body-secondary mb-3">
-                Money the group received that does not belong to any member, for example an opening balance that cannot be attributed
-                to one member, bank interest or a donation. It is added to cash available and the group fund on the dashboard, and is
-                never counted in any member's contributions.
-            </p>
+         
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead>

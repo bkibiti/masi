@@ -256,16 +256,7 @@
     </div>
 </div>
 
-<div class="col-12 mb-3">
-    <div class="gs-card small" style="background:#FFF8F0; border-color:#F1DCC6">
-        <b>How the numbers are worked out.</b>
-        Group fund = monthly fees + fines collected + loan interest + loan penalties + other income &minus; expenses.
-        Cash outside = loan principal not yet repaid.
-        Cash available = group fund &minus; cash outside.
-        Loan profit = interest and loan penalties actually received; expected adds the interest still scheduled on active loans.
-        The year selector changes contributions, loans released, fines and expenses; the other figures are as at today.
-    </div>
-</div>
+
 @endsection
 
 @push("page_scripts")

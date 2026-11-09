@@ -34,7 +34,6 @@
 <div class="col-12 d-flex justify-content-between align-items-center mb-3">
     <div>
         <span class="badge {{ $statusBadge }} fs-6">{{ $statusLabel }}</span>
-        <span class="ms-2">{{ $loan->loanType->name }} — {{ $loan->interest_method === 'fixed' ? 'Fixed' : 'Monthly reducing' }} @ {{ formatAmount($loan->interest_rate) }}%</span>
     </div>
     <div class="d-flex gap-2">
         @can('Manage Loans')
@@ -96,9 +95,7 @@
     </div></div>
 </div>
 
-@if ($loan->purpose)
-    <div class="col-12 mb-3"><div class="card"><div class="card-body"><strong>Purpose:</strong> {{ $loan->purpose }}</div></div></div>
-@endif
+
 
 @if ($loan->requiresGuarantors() || $loan->guarantors->isNotEmpty())
     <div class="col-12 mb-3">

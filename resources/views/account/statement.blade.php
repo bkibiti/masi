@@ -199,14 +199,7 @@
         @empty
             <div class="small text-body-secondary">Nothing due in the next two months.</div>
         @endforelse
-        <div class="small text-body-secondary mt-2">
-            @if ($rules['fee_percent'] !== null)
-                Unpaid monthly fees get a {{ rtrim(rtrim(number_format($rules['fee_percent'], 2), '0'), '.') }}% penalty from the 1st of the next month.
-            @endif
-            @if ($rules['loan_percent'] !== null)
-                Loan penalties ({{ rtrim(rtrim(number_format($rules['loan_percent'], 2), '0'), '.') }}% a month) start after the loan period ends.
-            @endif
-        </div>
+      
     </div>
 </div>
 <div class="col-lg-6 mb-3">
@@ -223,9 +216,7 @@
         @empty
             <div class="small text-body-secondary">You are not guaranteeing any loans.</div>
         @endforelse
-        @if ($guarantees->isNotEmpty())
-            <div class="small text-body-secondary mt-2">If a borrower you guarantee falls behind, you will see it here.</div>
-        @endif
+       
     </div>
 </div>
 
