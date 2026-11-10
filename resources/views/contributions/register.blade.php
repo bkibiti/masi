@@ -85,6 +85,15 @@
                 </div>
             </form>
 
+            <div class="d-flex flex-wrap gap-3 mb-3">
+                <span class="badge text-bg-success">&nbsp;</span> Paid on time
+                <span class="badge text-bg-warning">&nbsp;</span> Paid late
+                <span class="badge text-bg-info">&nbsp;</span> Partly paid
+                <span class="badge text-bg-danger">&nbsp;</span> Unpaid
+                <span class="badge text-bg-primary">&nbsp;</span> Current month
+                <span class="badge text-bg-secondary">&nbsp;</span> Not yet due
+            </div>
+
             <div class="table-responsive">
                 <table id="fixed-header" class="display table nowrap table-striped table-hover" style="width:100%">
                     <thead>

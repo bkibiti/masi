@@ -63,6 +63,7 @@ class UserController extends Controller
             'name1' => 'required|string|max:100',
             'role1' => 'required',
             'position1' => 'nullable|string|max:50',
+            'email1' => 'nullable|string|email|max:255',
         ]);
 
         $roles = $this->selectedRoles($request->role1);
@@ -73,6 +74,7 @@ class UserController extends Controller
         $user = User::findOrFail($request->UserID);
         $user->name = $request->name1;
         $user->position = $request->position1;
+        $user->email = $request->email1;
         $user->mobile = $request->mobile1;
         $user->save();
 
